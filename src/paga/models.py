@@ -68,6 +68,23 @@ class CheckoutVerifyChargeResponse(BaseModel):
     currency: Optional[str] = None
 
 
+class DepositToBankResponse(BaseModel):
+    """Response returned when sending money to a bank account or Paga wallet."""
+
+    model_config = ConfigDict(extra="allow")
+
+    referenceNumber: Optional[str] = None
+    responseCode: Optional[int] = None
+    message: Optional[str] = None
+    transactionId: Optional[str] = None
+    destinationAccountHolderNameAtBank: Optional[str] = None
+    fee: Optional[float] = None
+    vat: Optional[float] = None
+    currency: Optional[str] = None
+    exchangeRate: Optional[float] = None
+    sessionId: Optional[str] = None
+
+
 class RefundResponse(BaseModel):
     """Response returned when refunding or cancelling a payment request."""
 

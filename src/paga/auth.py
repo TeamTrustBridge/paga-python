@@ -18,6 +18,14 @@ PAYMENT_REQUEST_HASH_FIELDS: tuple = (
     "payer.email",
 )
 
+# Hash fields for the Money transfer - Send the money operation.
+MONEY_TRANSFER_HASH_FIELDS: tuple = (
+    "referenceNumber",
+    "amount",
+    "destinationBankUUID",
+    "destinationBankAccountNumber",
+)
+
 # Hash fields for the Refunds - Refund or cancel a payment request operation.
 REFUND_HASH_FIELDS: tuple = (
     "referenceNumber",

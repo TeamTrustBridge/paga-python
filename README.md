@@ -76,6 +76,20 @@ refund = await client.refund_payment({
 # refund.statusCode -> "102" means duplicate reference (no double refund)
 ```
 
+### Send money to a bank account or Paga wallet
+
+```python
+transfer = await client.send_money({
+    "referenceNumber": "PAY-2026-0311",
+    "amount": "5000.00",
+    "currency": "NGN",
+    "destinationBankUUID": "40090E2F-7446-4217-9345-7BBAB7043C4C",
+    "destinationBankAccountNumber": "0000000000",
+    "remarks": "Salary for June",
+})
+# transfer.responseCode -> "0" means success; other codes mean pending/duplicate/failed
+```
+
 ## License
 
 GPL-3.0 (see [LICENSE](LICENSE))

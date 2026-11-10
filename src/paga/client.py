@@ -8,6 +8,7 @@ import httpx
 
 from .auth import (
     DEFAULT_HASH_ALGORITHM,
+    MONEY_TRANSFER_HASH_FIELDS,
     PAYMENT_REQUEST_HASH_FIELDS,
     REFUND_HASH_FIELDS,
     PagaAuth,
@@ -17,6 +18,7 @@ from .exceptions import PagaAPIError, PagaAuthenticationError, PagaRateLimitErro
 from .models import (
     CheckoutVerifyChargeResponse,
     CollectPaymentRequestResponse,
+    DepositToBankResponse,
     PagaResponse,
     RefundResponse,
 )
@@ -25,6 +27,8 @@ DEFAULT_COLLECT_TEST_BASE_URL = "https://beta-collect.paga.com"
 DEFAULT_COLLECT_LIVE_BASE_URL = "https://collect.paga.com"
 DEFAULT_CHECKOUT_TEST_BASE_URL = "https://beta-checkout.paga.com"
 DEFAULT_CHECKOUT_LIVE_BASE_URL = "https://checkout.paga.com"
+DEFAULT_BUSINESS_TEST_BASE_URL = "https://beta.mypaga.com/paga-webservices/business-rest/secured"
+DEFAULT_BUSINESS_LIVE_BASE_URL = "https://www.mypaga.com/paga-webservices/business-rest/secured"
 
 
 class PagaClient:
@@ -53,6 +57,7 @@ class PagaClient:
         environment: str = "test",
         base_url: Optional[str] = None,
         checkout_base_url: Optional[str] = None,
+        business_base_url: Optional[str] = None,
         timeout: float = 30.0,
     ) -> None:
         if environment not in {"test", "live"}:
@@ -67,6 +72,9 @@ class PagaClient:
         )
         self.checkout_base_url = checkout_base_url or (
             DEFAULT_CHECKOUT_TEST_BASE_URL if environment == "test" else DEFAULT_CHECKOUT_LIVE_BASE_URL
+        )
+        self.business_base_url = business_base_url or (
+            DEFAULT_BUSINESS_TEST_BASE_URL if environment == "test" else DEFAULT_BUSINESS_LIVE_BASE_URL
         )
         self.timeout = httpx.Timeout(timeout)
         self.auth = PagaAuth(public_id=public_id, credentials=credentials, hash_key=hash_key)
@@ -106,6 +114,7 @@ class PagaClient:
         use_basic: bool = False,
         base_url: Optional[str] = None,
         hash_fields: Optional[tuple] = None,
+        raise_on_error: bool = True,
     ) -> PagaResponse:
         """Execute a request against the Paga Engine API.
 
@@ -163,7 +172,7 @@ class PagaClient:
 
         body: Any = response.json() if response.content else {}
         result = PagaResponse.model_validate(body)
-        if not result.is_success:
+        if raise_on_error and not result.is_success:
             raise PagaAPIError(
                 message=result.message or "Paga request failed",
                 response_code=result.responseCode,
@@ -272,3 +281,30 @@ class PagaClient:
             hash_fields=REFUND_HASH_FIELDS,
         )
         return RefundResponse.model_validate(response.model_dump())
+
+    async def send_money(self, payload: Mapping[str, Any]) -> DepositToBankResponse:
+        """Send money from the business balance to a bank account or Paga wallet.
+
+        Operation: Money transfer - Send the money.
+
+        Sends money from the business balance to a bank account, or to a Paga
+        wallet (using Paga's UUID ``AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA``).
+
+        Args:
+            payload: Transfer fields (``referenceNumber``, ``amount``, ``currency``,
+                ``destinationBankUUID``, ``destinationBankAccountNumber``, ...).
+
+        Returns:
+            The parsed :class:`DepositToBankResponse`.
+        """
+        response = await self._request(
+            "POST",
+            "/depositToBank",
+            payload,
+            use_hash=True,
+            use_basic=False,
+            base_url=self.business_base_url,
+            hash_fields=MONEY_TRANSFER_HASH_FIELDS,
+            raise_on_error=False,
+        )
+        return DepositToBankResponse.model_validate(response.model_dump())
