@@ -9,6 +9,7 @@ import httpx
 from .auth import (
     DEFAULT_HASH_ALGORITHM,
     PAYMENT_REQUEST_HASH_FIELDS,
+    REFUND_HASH_FIELDS,
     PagaAuth,
     generate_hash,
 )
@@ -17,6 +18,7 @@ from .models import (
     CheckoutVerifyChargeResponse,
     CollectPaymentRequestResponse,
     PagaResponse,
+    RefundResponse,
 )
 
 DEFAULT_COLLECT_TEST_BASE_URL = "https://beta-collect.paga.com"
@@ -244,3 +246,29 @@ class PagaClient:
             base_url=self.checkout_base_url,
         )
         return CheckoutVerifyChargeResponse.model_validate(response.model_dump())
+
+    async def refund_payment(self, payload: Mapping[str, Any]) -> RefundResponse:
+        """Refund or cancel a payment request.
+
+        Operation: Refunds - Refund or cancel a payment request.
+
+        Refunds a paid payment request in full or in part, or cancels one that
+        has not been paid. Send one request per partial refund, each with its
+        own ``referenceNumber``. Reusing a ``referenceNumber`` returns status
+        code ``102`` and never refunds twice.
+
+        Args:
+            payload: Refund fields (``referenceNumber``, ``paymentRequestReference``, ``refundAmount``, ``currency``, ``reason``).
+
+        Returns:
+            The parsed :class:`RefundResponse`.
+        """
+        response = await self._request(
+            "POST",
+            "/refund/v2",
+            payload,
+            use_hash=True,
+            use_basic=True,
+            hash_fields=REFUND_HASH_FIELDS,
+        )
+        return RefundResponse.model_validate(response.model_dump())

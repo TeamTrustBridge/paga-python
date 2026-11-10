@@ -19,6 +19,7 @@ from .models import (
     CollectPaymentRequestResponse,
     PagaPaymentCallback,
     PagaResponse,
+    RefundResponse,
 )
 from .webhooks import (
     parse_payment_callback,
@@ -44,6 +45,7 @@ __all__ = [
     "PagaPaymentCallback",
     "PagaRateLimitError",
     "PagaResponse",
+    "RefundResponse",
     "__version__",
     "parse_payment_callback",
     "verify_checkout_notification",

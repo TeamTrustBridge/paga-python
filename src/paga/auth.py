@@ -18,6 +18,12 @@ PAYMENT_REQUEST_HASH_FIELDS: tuple = (
     "payer.email",
 )
 
+# Hash fields for the Refunds - Refund or cancel a payment request operation.
+REFUND_HASH_FIELDS: tuple = (
+    "referenceNumber",
+    "refundAmount",
+)
+
 # Hash fields for the Payment callback ("Handle the callback") operation.
 PAYMENT_CALLBACK_HASH_FIELDS: tuple = (
     "notificationId",

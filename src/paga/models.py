@@ -68,6 +68,19 @@ class CheckoutVerifyChargeResponse(BaseModel):
     currency: Optional[str] = None
 
 
+class RefundResponse(BaseModel):
+    """Response returned when refunding or cancelling a payment request."""
+
+    model_config = ConfigDict(extra="allow")
+
+    referenceNumber: Optional[str] = None
+    statusCode: Optional[str] = None
+    statusMessage: Optional[str] = None
+    refundAmount: Optional[float] = None
+    currency: Optional[str] = None
+    refundDestination: Optional[str] = None
+
+
 class PagaPaymentCallback(BaseModel):
     """Normalized payment callback (notification) payload sent by Paga."""
 

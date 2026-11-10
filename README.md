@@ -63,6 +63,19 @@ ok = verify_checkout_notification(payload, received_hash, hash_key)
 ok = verify_payment_callback(payload, received_hash, hash_key)
 ```
 
+### Refund or cancel a payment request
+
+```python
+refund = await client.refund_payment({
+    "referenceNumber": "RFD-2026-0031",
+    "paymentRequestReference": "ORD-2026-0187",
+    "refundAmount": 1000,
+    "currency": "NGN",
+    "reason": "Item out of stock",
+})
+# refund.statusCode -> "102" means duplicate reference (no double refund)
+```
+
 ## License
 
-GPL-3.0
+GPL-3.0 (see [LICENSE](LICENSE))
