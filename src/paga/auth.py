@@ -18,6 +18,14 @@ PAYMENT_REQUEST_HASH_FIELDS: tuple = (
     "payer.email",
 )
 
+# Hash fields for the Bill payment - Pay the bill operation.
+BILL_PAYMENT_HASH_FIELDS: tuple = (
+    "referenceNumber",
+    "amount",
+    "merchantAccount",
+    "merchantReferenceNumber",
+)
+
 # Hash fields for the Airtime and data - Buy the airtime or data operation.
 AIRTIME_HASH_FIELDS: tuple = (
     "referenceNumber",

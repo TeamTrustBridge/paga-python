@@ -90,6 +90,19 @@ purchase = await client.buy_airtime(
 )
 ```
 
+### Pay a bill
+
+```python
+bill = await client.pay_bill(
+    reference_number="BILL-2026-0042",
+    amount=6000,
+    merchant_account="A3878DC1-F07D-48E7-AA59-8276C3C26647",
+    merchant_reference_number="8110411076",
+    merchant_service=["STARTERE36"],
+)
+# bill.responseCode -> 0 means success
+```
+
 ## Webhook verification
 
 ```python

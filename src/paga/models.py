@@ -68,6 +68,25 @@ class CheckoutVerifyChargeResponse(BaseModel):
     currency: Optional[str] = None
 
 
+class MerchantPaymentResponse(BaseModel):
+    """Response returned when paying a bill."""
+
+    model_config = ConfigDict(extra="allow")
+
+    responseCode: Optional[int] = None
+    responseCategoryCode: Optional[int] = None
+    message: Optional[str] = None
+    referenceNumber: Optional[str] = None
+    merchantTransactionReference: Optional[str] = None
+    transactionId: Optional[str] = None
+    reversalId: Optional[str] = None
+    currency: Optional[str] = None
+    exchangeRate: Optional[float] = None
+    fee: Optional[float] = None
+    integrationStatus: Optional[str] = None
+    additionalProperties: Optional[Dict[str, Any]] = None
+
+
 class PurchaseResponse(BaseModel):
     """Response returned when buying airtime or data."""
 

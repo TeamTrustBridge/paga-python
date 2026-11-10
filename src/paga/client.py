@@ -8,6 +8,7 @@ import httpx
 
 from .auth import (
     AIRTIME_HASH_FIELDS,
+    BILL_PAYMENT_HASH_FIELDS,
     DEFAULT_HASH_ALGORITHM,
     MONEY_TRANSFER_HASH_FIELDS,
     PAYMENT_REQUEST_HASH_FIELDS,
@@ -20,6 +21,7 @@ from .models import (
     CheckoutVerifyChargeResponse,
     CollectPaymentRequestResponse,
     DepositToBankResponse,
+    MerchantPaymentResponse,
     PagaResponse,
     PurchaseResponse,
     RefundResponse,
@@ -483,3 +485,62 @@ class PagaClient:
             raise_on_error=False,
         )
         return PurchaseResponse.model_validate(response.model_dump())
+
+    async def pay_bill(
+        self,
+        *,
+        reference_number: str,
+        amount: float,
+        merchant_account: str,
+        merchant_reference_number: str,
+        merchant_service: Optional[List[str]] = None,
+        currency: str = "NGN",
+        payment_channel: Optional[str] = None,
+        locale: Optional[str] = None,
+    ) -> MerchantPaymentResponse:
+        """Pay a bill from the business balance.
+
+        Operation: Bill payment - Pay the bill.
+
+        Pays a bill from the business balance. There is no callback: decide on
+        ``responseCode``. ``integrationStatus`` is for information only.
+
+        Args:
+            reference_number: Your unique bill payment reference.
+            amount: Bill amount.
+            merchant_account: The biller's UUID. From the biller lookup.
+            merchant_reference_number: The customer's account / meter /
+                smart card / account number at the biller.
+            merchant_service: Optional chosen service code. Leave out for
+                billers with no services.
+            currency: Transaction currency. Defaults to ``"NGN"``.
+            payment_channel: Optional payment channel.
+            locale: Optional locale.
+
+        Returns:
+            The parsed :class:`MerchantPaymentResponse`.
+        """
+        payload: Dict[str, Any] = {
+            "referenceNumber": reference_number,
+            "amount": amount,
+            "merchantAccount": merchant_account,
+            "merchantReferenceNumber": merchant_reference_number,
+            "currency": currency,
+        }
+        if merchant_service is not None:
+            payload["merchantService"] = merchant_service
+        if payment_channel is not None:
+            payload["paymentChannel"] = payment_channel
+        if locale is not None:
+            payload["locale"] = locale
+        response = await self._request(
+            "POST",
+            "/merchantPayment",
+            payload,
+            use_hash=True,
+            use_basic=False,
+            base_url=self.business_base_url,
+            hash_fields=BILL_PAYMENT_HASH_FIELDS,
+            raise_on_error=False,
+        )
+        return MerchantPaymentResponse.model_validate(response.model_dump())
