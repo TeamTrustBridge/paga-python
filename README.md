@@ -111,6 +111,13 @@ bill = await client.pay_bill(
 # bill.responseCode -> 0 means success
 ```
 
+### Check business account balance
+
+```python
+balance = await client.get_business_balance(reference_number="BAL-2026-0042")
+# balance.availableBalance -> what you can actually send before a payout run
+```
+
 ## Webhook verification
 
 ```python

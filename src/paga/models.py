@@ -104,6 +104,18 @@ class PurchaseResponse(BaseModel):
     fee: Optional[float] = None
 
 
+class AccountBalanceResponse(BaseModel):
+    """Response returned when checking the business account balance."""
+
+    model_config = ConfigDict(extra="allow")
+
+    referenceNumber: Optional[str] = None
+    responseCode: Optional[int] = None
+    totalBalance: Optional[str] = None
+    availableBalance: Optional[float] = None
+    currency: Optional[str] = None
+
+
 class PaymentStatusData(BaseModel):
     """Payment status details nested in a payment status response."""
 

@@ -41,6 +41,11 @@ MONEY_TRANSFER_HASH_FIELDS: tuple = (
     "destinationBankAccountNumber",
 )
 
+# Hash fields for the Check your business account balance operation.
+ACCOUNT_BALANCE_HASH_FIELDS: tuple = (
+    "referenceNumber",
+)
+
 # Hash fields for the Check payment status operation.
 PAYMENT_STATUS_HASH_FIELDS: tuple = (
     "referenceNumber",

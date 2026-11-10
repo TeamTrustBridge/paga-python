@@ -14,6 +14,7 @@ from .exceptions import (
     PagaRateLimitError,
 )
 from .models import (
+    AccountBalanceResponse,
     CheckoutVerifyChargeResponse,
     CollectPaymentMethodResult,
     CollectPaymentRequestResponse,
@@ -36,6 +37,7 @@ from .webhooks import (
 __version__ = "0.1.0"
 
 __all__ = [
+    "AccountBalanceResponse",
     "DEFAULT_CHECKOUT_LIVE_BASE_URL",
     "DEFAULT_CHECKOUT_TEST_BASE_URL",
     "DEFAULT_COLLECT_LIVE_BASE_URL",

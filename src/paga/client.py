@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Mapping, Optional
 import httpx
 
 from .auth import (
+    ACCOUNT_BALANCE_HASH_FIELDS,
     AIRTIME_HASH_FIELDS,
     BILL_PAYMENT_HASH_FIELDS,
     DEFAULT_HASH_ALGORITHM,
@@ -19,6 +20,7 @@ from .auth import (
 )
 from .exceptions import PagaAPIError, PagaAuthenticationError, PagaRateLimitError
 from .models import (
+    AccountBalanceResponse,
     CheckoutVerifyChargeResponse,
     CollectPaymentRequestResponse,
     DepositToBankResponse,
@@ -310,6 +312,32 @@ class PagaClient:
             hash_fields=PAYMENT_STATUS_HASH_FIELDS,
         )
         return PaymentStatusResponse.model_validate(response.model_dump())
+
+    async def get_business_balance(self, *, reference_number: str) -> AccountBalanceResponse:
+        """Check the business account balance.
+
+        Operation: Your business account - Check your balance.
+
+        Returns the business account balance. Check ``availableBalance``, not
+        ``totalBalance``, before a payout run: it is what you can actually send.
+
+        Args:
+            reference_number: Your unique balance check reference.
+
+        Returns:
+            The parsed :class:`AccountBalanceResponse`.
+        """
+        response = await self._request(
+            "POST",
+            "/accountBalance",
+            {"referenceNumber": reference_number},
+            use_hash=True,
+            use_basic=False,
+            base_url=self.business_base_url,
+            hash_fields=ACCOUNT_BALANCE_HASH_FIELDS,
+            raise_on_error=False,
+        )
+        return AccountBalanceResponse.model_validate(response.model_dump())
 
     async def verify_charge(
         self,
