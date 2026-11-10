@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 import httpx
 
@@ -206,7 +206,23 @@ class PagaClient:
             payload=body,
         )
 
-    async def create_payment(self, payload: Mapping[str, Any]) -> CollectPaymentRequestResponse:
+    async def create_payment(
+        self,
+        *,
+        reference_number: str,
+        amount: float,
+        payer_name: str,
+        payer_phone_number: str,
+        payee_name: str,
+        currency: str = "NGN",
+        payer_email: Optional[str] = None,
+        call_back_url: Optional[str] = None,
+        payment_methods: Optional[List[str]] = None,
+        expiry_date_time_utc: Optional[str] = None,
+        is_suppress_messages: bool = False,
+        payer_collection_fee_share: float = 1,
+        payee_collection_fee_share: float = 0,
+    ) -> CollectPaymentRequestResponse:
         """Create a Paga payment request.
 
         Operation: Dynamic virtual account - Create a payment request.
@@ -216,13 +232,49 @@ class PagaClient:
         the configured ``callBackUrl`` when the payment completes.
 
         Args:
-            payload: Payment request fields (``referenceNumber``, ``amount``,
-                ``currency``, ``payer``, ``payee``, ``callBackUrl``,
-                ``paymentMethods``, ...).
+            reference_number: Your unique payment request reference.
+            amount: Amount to request, in the major currency unit.
+            payer_name: Customer's name.
+            payer_phone_number: Customer's phone number.
+            payee_name: Your business name, shown to the customer.
+            currency: Currency of the transaction. Defaults to ``"NGN"``.
+            payer_email: Customer's email address. Optional.
+            call_back_url: Where Paga sends the callback. Optional.
+            payment_methods: Payment methods to accept. Defaults to
+                ``["BANK_TRANSFER"]``.
+            expiry_date_time_utc: When the request expires, in UTC. Optional.
+            is_suppress_messages: Whether Paga should suppress emails/SMS. Defaults
+                to ``False``.
+            payer_collection_fee_share: Share of the fee the customer pays. Defaults
+                to ``1``.
+            payee_collection_fee_share: Share of the fee the business pays. Defaults
+                to ``0``.
 
         Returns:
             The parsed :class:`CollectPaymentRequestResponse`.
         """
+        payload: Dict[str, Any] = {
+            "referenceNumber": reference_number,
+            "amount": amount,
+            "currency": currency,
+            "payer": {
+                "name": payer_name,
+                "phoneNumber": payer_phone_number,
+            },
+            "payee": {"name": payee_name},
+            "payerCollectionFeeShare": payer_collection_fee_share,
+            "payeeCollectionFeeShare": payee_collection_fee_share,
+            "paymentMethods": payment_methods or ["BANK_TRANSFER"],
+        }
+        if payer_email is not None:
+            payload["payer"]["email"] = payer_email
+        if call_back_url is not None:
+            payload["callBackUrl"] = call_back_url
+        if expiry_date_time_utc is not None:
+            payload["expiryDateTimeUTC"] = expiry_date_time_utc
+        if is_suppress_messages:
+            payload["isSuppressMessages"] = True
+
         response = await self._request(
             "POST",
             "/paymentRequest",
@@ -232,7 +284,14 @@ class PagaClient:
         )
         return CollectPaymentRequestResponse.model_validate(response.model_dump())
 
-    async def verify_charge(self, payload: Mapping[str, Any]) -> CheckoutVerifyChargeResponse:
+    async def verify_charge(
+        self,
+        *,
+        payment_reference: str,
+        public_key: str,
+        amount: float,
+        currency: str = "NGN",
+    ) -> CheckoutVerifyChargeResponse:
         """Verify a checkout charge.
 
         Confirms a Checkout payment from your server at any time using its
@@ -242,12 +301,20 @@ class PagaClient:
         - ``status_code`` of ``2`` means pending.
 
         Args:
-            payload: Charge verification fields (``paymentReference``,
-                ``publicKey``, ``amount``, ``currency``).
+            payment_reference: The ``paymentReference`` of the charge to verify.
+            public_key: The public key used for the checkout.
+            amount: The amount to verify.
+            currency: The currency of the charge. Defaults to ``"NGN"``.
 
         Returns:
             The parsed :class:`CheckoutVerifyChargeResponse`.
         """
+        payload = {
+            "paymentReference": payment_reference,
+            "publicKey": public_key,
+            "amount": amount,
+            "currency": currency,
+        }
         response = await self._request(
             "POST",
             "/checkout/transaction/verify",
@@ -258,22 +325,43 @@ class PagaClient:
         )
         return CheckoutVerifyChargeResponse.model_validate(response.model_dump())
 
-    async def refund_payment(self, payload: Mapping[str, Any]) -> RefundResponse:
+    async def refund_payment(
+        self,
+        *,
+        reference_number: str,
+        payment_request_reference: str,
+        refund_amount: float,
+        currency: str = "NGN",
+        reason: Optional[str] = None,
+    ) -> RefundResponse:
         """Refund or cancel a payment request.
 
         Operation: Refunds - Refund or cancel a payment request.
 
         Refunds a paid payment request in full or in part, or cancels one that
         has not been paid. Send one request per partial refund, each with its
-        own ``referenceNumber``. Reusing a ``referenceNumber`` returns status
+        own ``reference_number``. Reusing a ``reference_number`` returns status
         code ``102`` and never refunds twice.
 
         Args:
-            payload: Refund fields (``referenceNumber``, ``paymentRequestReference``, ``refundAmount``, ``currency``, ``reason``).
+            reference_number: Your unique reference for this refund.
+            payment_request_reference: The ``reference_number`` of the original
+                payment request.
+            refund_amount: Amount to refund.
+            currency: Transaction currency. Defaults to ``"NGN"``.
+            reason: Optional refund reason.
 
         Returns:
             The parsed :class:`RefundResponse`.
         """
+        payload: Dict[str, Any] = {
+            "referenceNumber": reference_number,
+            "paymentRequestReference": payment_request_reference,
+            "refundAmount": refund_amount,
+            "currency": currency,
+        }
+        if reason is not None:
+            payload["reason"] = reason
         response = await self._request(
             "POST",
             "/refund/v2",
@@ -284,7 +372,17 @@ class PagaClient:
         )
         return RefundResponse.model_validate(response.model_dump())
 
-    async def send_money(self, payload: Mapping[str, Any]) -> DepositToBankResponse:
+    async def send_money(
+        self,
+        *,
+        reference_number: str,
+        amount: str,
+        destination_bank_uuid: str,
+        destination_bank_account_number: str,
+        currency: str = "NGN",
+        remarks: Optional[str] = None,
+        status_callback_url: Optional[str] = None,
+    ) -> DepositToBankResponse:
         """Send money from the business balance to a bank account or Paga wallet.
 
         Operation: Money transfer - Send the money.
@@ -293,12 +391,29 @@ class PagaClient:
         wallet (using Paga's UUID ``AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA``).
 
         Args:
-            payload: Transfer fields (``referenceNumber``, ``amount``, ``currency``,
-                ``destinationBankUUID``, ``destinationBankAccountNumber``, ...).
+            reference_number: Your unique transfer reference.
+            amount: Amount to send (e.g. ``"5000.00"``).
+            destination_bank_uuid: The bank's UUID from get banks, or Paga's UUID
+                for a wallet.
+            destination_bank_account_number: Destination bank account number.
+            currency: Transaction currency. Defaults to ``"NGN"``.
+            remarks: Optional transfer remarks.
+            status_callback_url: Where Paga notifies once the transfer is processed. Optional.
 
         Returns:
             The parsed :class:`DepositToBankResponse`.
         """
+        payload: Dict[str, Any] = {
+            "referenceNumber": reference_number,
+            "amount": amount,
+            "currency": currency,
+            "destinationBankUUID": destination_bank_uuid,
+            "destinationBankAccountNumber": destination_bank_account_number,
+        }
+        if remarks is not None:
+            payload["remarks"] = remarks
+        if status_callback_url is not None:
+            payload["statusCallbackUrl"] = status_callback_url
         response = await self._request(
             "POST",
             "/depositToBank",
@@ -311,7 +426,18 @@ class PagaClient:
         )
         return DepositToBankResponse.model_validate(response.model_dump())
 
-    async def buy_airtime(self, payload: Mapping[str, Any]) -> PurchaseResponse:
+    async def buy_airtime(
+        self,
+        *,
+        reference_number: str,
+        amount: str,
+        destination_phone_number: str,
+        mobile_operator_public_id: str,
+        currency: str = "NGN",
+        is_data_bundle: bool = False,
+        mobile_operator_service_id: Optional[str] = None,
+        is_suppress_recipient_messages: bool = False,
+    ) -> PurchaseResponse:
         """Buy airtime or data.
 
         Operation: Airtime and data - Buy the airtime or data.
@@ -321,12 +447,31 @@ class PagaClient:
         status if needed.
 
         Args:
-            payload: Airtime purchase fields (``referenceNumber``, ``amount``,
-                ``destinationPhoneNumber``, ``mobileOperatorPublicId``, ...).
+            reference_number: Your unique airtime purchase reference.
+            amount: Airtime value, or exactly the bundle's ``servicePrice`` for data.
+            destination_phone_number: Phone number to credit.
+            mobile_operator_public_id: The network's mobile operator public id.
+            currency: Transaction currency. Defaults to ``"NGN"``.
+            is_data_bundle: Whether this is a data bundle purchase. Defaults to ``False``.
+            mobile_operator_service_id: Data only. The bundle's ``serviceId``.
+            is_suppress_recipient_messages: Whether to suppress recipient messages.
 
         Returns:
             The parsed :class:`PurchaseResponse`.
         """
+        payload: Dict[str, Any] = {
+            "referenceNumber": reference_number,
+            "amount": amount,
+            "destinationPhoneNumber": destination_phone_number,
+            "mobileOperatorPublicId": mobile_operator_public_id,
+            "currency": currency,
+            "isDataBundle": is_data_bundle,
+        }
+        if mobile_operator_service_id is not None:
+            payload["mobileOperatorServiceId"] = mobile_operator_service_id
+        if is_suppress_recipient_messages:
+            payload["isSuppressRecipientMessages"] = True
+
         response = await self._request(
             "POST",
             "/airtimePurchase",
