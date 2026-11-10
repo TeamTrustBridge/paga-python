@@ -1,0 +1,19 @@
+# uv
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# IDE
+.idea/
+.vscode/
+.cursor/
+
+# Environment
+.env
+.env.*
+!.env.example

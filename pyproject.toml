@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "paga-python"
+version = "0.1.0"
+description = "Async Python SDK for the Paga Engine API - payments, payouts, wallets and financial operations."
+readme = "README.md"
+license = { text = "GPL-3.0" }
+requires-python = ">=3.9"
+dependencies = [
+    "httpx>=0.27,<1.0",
+    "pydantic>=2.7,<3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.urls]
+Homepage = "https://developer-docs.paga.com"
+Documentation = "https://developer-docs.paga.com/docs/get-started"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/paga"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/paga", "README.md", "pyproject.toml"]

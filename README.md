@@ -1,0 +1,68 @@
+# paga-python
+
+Async Python SDK for the **Paga Engine API**, built to make the developer workflow
+easy for page/integration developers building checkout and payment experiences.
+
+## Status
+
+Phase 2 of the phased rollout complete:
+
+- Async client foundation (`PagaClient`, async context manager)
+- Credentials handling + Paga hash signing (validated against Paga's documented hash example)
+- Checkout operations: create payment request, verify charge
+- Payment callback (notification) parsing + hash verification
+
+Full endpoint coverage is being delivered in phases across the sibling packages
+`paga-ts` (TypeScript) and `paga-rs` (Rust).
+
+## Install
+
+```bash
+pip install -e .
+```
+
+## Usage
+
+### Create a payment request
+
+```python
+async with PagaClient(public_id=..., credentials=..., hash_key=...) as client:
+    payment = await client.create_payment({
+        "referenceNumber": "ORD-2026-0187",
+        "amount": 50,
+        "currency": "NGN",
+        "payer": {"name": "Bello Ramon", "phoneNumber": "08064343187"},
+        "payee": {"name": "Your business name"},
+        "callBackUrl": "https://yourstore.com/webhooks/paga",
+        "paymentMethods": ["BANK_TRANSFER"],
+    })
+    # payment.statusCode -> "0" means created; payment.paymentMethods[0].properties["AccountNumber"]
+```
+
+### Verify a charge
+
+```python
+verified = await client.verify_charge({
+    "paymentReference": payment.referenceNumber,
+    "publicKey": "...",
+    "amount": 50,
+    "currency": "NGN",
+})
+# verified.status_code == 0 -> paid; 2 -> pending
+```
+
+### Handle the payment callback (webhook)
+
+```python
+from paga import verify_checkout_notification, verify_payment_callback, parse_payment_callback
+
+# Checkout notification: hash = amount + timeStamp + paymentReference + hashKey
+ok = verify_checkout_notification(payload, received_hash, hash_key)
+
+# Dynamic virtual account callback: hash = notificationId + statusCode + externalReferenceNumber + state + outstandingBalance + hashKey
+ok = verify_payment_callback(payload, received_hash, hash_key)
+```
+
+## License
+
+GPL-3.0
