@@ -20,6 +20,7 @@ from .models import (
     DepositToBankResponse,
     PagaPaymentCallback,
     PagaResponse,
+    PurchaseResponse,
     RefundResponse,
 )
 from .webhooks import (
@@ -47,6 +48,7 @@ __all__ = [
     "PagaPaymentCallback",
     "PagaRateLimitError",
     "PagaResponse",
+    "PurchaseResponse",
     "RefundResponse",
     "__version__",
     "parse_payment_callback",

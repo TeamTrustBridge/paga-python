@@ -68,6 +68,23 @@ class CheckoutVerifyChargeResponse(BaseModel):
     currency: Optional[str] = None
 
 
+class PurchaseResponse(BaseModel):
+    """Response returned when buying airtime or data."""
+
+    model_config = ConfigDict(extra="allow")
+
+    responseCode: Optional[int] = None
+    responseCategoryCode: Optional[int] = None
+    message: Optional[str] = None
+    referenceNumber: Optional[str] = None
+    transactionId: Optional[str] = None
+    reversalId: Optional[str] = None
+    currency: Optional[str] = None
+    exchangeRate: Optional[float] = None
+    integrationStatus: Optional[str] = None
+    fee: Optional[float] = None
+
+
 class DepositToBankResponse(BaseModel):
     """Response returned when sending money to a bank account or Paga wallet."""
 

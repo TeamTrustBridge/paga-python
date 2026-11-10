@@ -90,6 +90,20 @@ transfer = await client.send_money({
 # transfer.responseCode -> "0" means success; other codes mean pending/duplicate/failed
 ```
 
+### Buy airtime or data
+
+```python
+purchase = await client.buy_airtime({
+    "referenceNumber": "AIR-2026-0042",
+    "amount": "500",
+    "currency": "NGN",
+    "destinationPhoneNumber": "08063332187",
+    "mobileOperatorPublicId": "42419156-DD57-4737-8373-20678CD9AA29",
+    "isDataBundle": False,
+})
+# purchase.responseCode -> "0" means success; check transaction status if needed
+```
+
 ## License
 
 GPL-3.0 (see [LICENSE](LICENSE))

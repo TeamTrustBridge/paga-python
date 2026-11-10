@@ -7,6 +7,7 @@ from typing import Any, Dict, Mapping, Optional
 import httpx
 
 from .auth import (
+    AIRTIME_HASH_FIELDS,
     DEFAULT_HASH_ALGORITHM,
     MONEY_TRANSFER_HASH_FIELDS,
     PAYMENT_REQUEST_HASH_FIELDS,
@@ -20,6 +21,7 @@ from .models import (
     CollectPaymentRequestResponse,
     DepositToBankResponse,
     PagaResponse,
+    PurchaseResponse,
     RefundResponse,
 )
 
@@ -308,3 +310,31 @@ class PagaClient:
             raise_on_error=False,
         )
         return DepositToBankResponse.model_validate(response.model_dump())
+
+    async def buy_airtime(self, payload: Mapping[str, Any]) -> PurchaseResponse:
+        """Buy airtime or data.
+
+        Operation: Airtime and data - Buy the airtime or data.
+
+        Tops up a phone with airtime or data from the business balance. There
+        is no callback: decide on ``responseCode``, and check the transaction
+        status if needed.
+
+        Args:
+            payload: Airtime purchase fields (``referenceNumber``, ``amount``,
+                ``destinationPhoneNumber``, ``mobileOperatorPublicId``, ...).
+
+        Returns:
+            The parsed :class:`PurchaseResponse`.
+        """
+        response = await self._request(
+            "POST",
+            "/airtimePurchase",
+            payload,
+            use_hash=True,
+            use_basic=False,
+            base_url=self.business_base_url,
+            hash_fields=AIRTIME_HASH_FIELDS,
+            raise_on_error=False,
+        )
+        return PurchaseResponse.model_validate(response.model_dump())

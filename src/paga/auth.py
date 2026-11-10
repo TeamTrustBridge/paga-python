@@ -18,6 +18,13 @@ PAYMENT_REQUEST_HASH_FIELDS: tuple = (
     "payer.email",
 )
 
+# Hash fields for the Airtime and data - Buy the airtime or data operation.
+AIRTIME_HASH_FIELDS: tuple = (
+    "referenceNumber",
+    "amount",
+    "destinationPhoneNumber",
+)
+
 # Hash fields for the Money transfer - Send the money operation.
 MONEY_TRANSFER_HASH_FIELDS: tuple = (
     "referenceNumber",
