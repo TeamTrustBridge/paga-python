@@ -104,6 +104,32 @@ class PurchaseResponse(BaseModel):
     fee: Optional[float] = None
 
 
+class PaymentStatusData(BaseModel):
+    """Payment status details nested in a payment status response."""
+
+    model_config = ConfigDict(extra="allow")
+
+    referenceNumber: Optional[str] = None
+    statusCode: Optional[str] = None
+    statusMessage: Optional[str] = None
+    requestAmount: Optional[float] = None
+    totalPaymentAmount: Optional[float] = None
+    expiryDateTimeUTC: Optional[str] = None
+    additionalData: Optional[Dict[str, Any]] = None
+    refundStatus: Optional[str] = None
+
+
+class PaymentStatusResponse(BaseModel):
+    """Response returned when checking the status of a payment request."""
+
+    model_config = ConfigDict(extra="allow")
+
+    referenceNumber: Optional[str] = None
+    statusCode: Optional[str] = None
+    statusMessage: Optional[str] = None
+    data: Optional[PaymentStatusData] = None
+
+
 class DepositToBankResponse(BaseModel):
     """Response returned when sending money to a bank account or Paga wallet."""
 

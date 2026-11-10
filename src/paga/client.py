@@ -12,6 +12,7 @@ from .auth import (
     DEFAULT_HASH_ALGORITHM,
     MONEY_TRANSFER_HASH_FIELDS,
     PAYMENT_REQUEST_HASH_FIELDS,
+    PAYMENT_STATUS_HASH_FIELDS,
     REFUND_HASH_FIELDS,
     PagaAuth,
     generate_hash,
@@ -285,6 +286,30 @@ class PagaClient:
             use_basic=True,
         )
         return CollectPaymentRequestResponse.model_validate(response.model_dump())
+
+    async def get_payment_status(self, *, reference_number: str) -> PaymentStatusResponse:
+        """Check the status of a payment request.
+
+        Operation: Dynamic virtual account - Check payment status.
+
+        The outer ``statusCode`` only says whether the status request worked;
+        the payment's own status is in ``data.statusCode``.
+
+        Args:
+            reference_number: The ``referenceNumber`` of the payment request.
+
+        Returns:
+            The parsed :class:`PaymentStatusResponse`.
+        """
+        response = await self._request(
+            "POST",
+            "/status",
+            {"referenceNumber": reference_number},
+            use_hash=True,
+            use_basic=True,
+            hash_fields=PAYMENT_STATUS_HASH_FIELDS,
+        )
+        return PaymentStatusResponse.model_validate(response.model_dump())
 
     async def verify_charge(
         self,

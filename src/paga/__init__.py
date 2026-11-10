@@ -21,6 +21,8 @@ from .models import (
     MerchantPaymentResponse,
     PagaPaymentCallback,
     PagaResponse,
+    PaymentStatusData,
+    PaymentStatusResponse,
     PurchaseResponse,
     RefundResponse,
 )
@@ -50,6 +52,8 @@ __all__ = [
     "PagaPaymentCallback",
     "PagaRateLimitError",
     "PagaResponse",
+    "PaymentStatusData",
+    "PaymentStatusResponse",
     "PurchaseResponse",
     "RefundResponse",
     "__version__",

@@ -41,6 +41,11 @@ MONEY_TRANSFER_HASH_FIELDS: tuple = (
     "destinationBankAccountNumber",
 )
 
+# Hash fields for the Check payment status operation.
+PAYMENT_STATUS_HASH_FIELDS: tuple = (
+    "referenceNumber",
+)
+
 # Hash fields for the Refunds - Refund or cancel a payment request operation.
 REFUND_HASH_FIELDS: tuple = (
     "referenceNumber",

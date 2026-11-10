@@ -9,10 +9,11 @@ Phase 3 in progress — action operations shipped and hash-verified:
 
 - Async client foundation (`PagaClient`, async context manager)
 - Credentials + Paga hash signing (validated against Paga's documented hash examples)
-- Checkout: create payment request, verify charge
+- Checkout: create payment request, get payment status, verify charge
 - Refunds: refund / cancel payment request
 - Money transfer: send money to bank / Paga wallet
 - Airtime & data: buy airtime / data
+- Bill payment: pay bill
 
 Full endpoint coverage is being delivered in phases across the sibling packages
 `paga-ts` (TypeScript) and `paga-rs` (Rust).
@@ -39,6 +40,13 @@ payment = await client.create_payment(
     call_back_url="https://yourstore.com/webhooks/paga",
     payment_methods=["BANK_TRANSFER"],
 )
+```
+
+### Check payment status
+
+```python
+status = await client.get_payment_status(reference_number="ORD-2026-0187")
+# status.data.statusCode -> "0" means paid
 ```
 
 ### Verify a charge
