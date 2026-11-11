@@ -18,5 +18,4 @@ dist/
 .env.*
 !.env.example
 
-# Secrets
 .pypirc
