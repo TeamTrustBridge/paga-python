@@ -67,6 +67,80 @@ SUBSIDIARY_ACCOUNT_HASH_FIELDS: tuple = (
     "callbackUrl",
 )
 
+# Hash fields for the Subsidiary Accounts - Charge an account operation.
+SUBSIDIARY_CHARGE_HASH_FIELDS: tuple = (
+    "referenceNumber",
+    "amount",
+    "currency",
+    "narration",
+)
+
+# Hash fields for the Subsidiary Accounts - Top up an account operation.
+SUBSIDIARY_TOPUP_HASH_FIELDS: tuple = (
+    "referenceNumber",
+    "amount",
+    "currency",
+    "narration",
+)
+
+# Hash fields for the Subsidiary Accounts - Transfer between accounts operation.
+SUBSIDIARY_TRANSFER_HASH_FIELDS: tuple = (
+    "referenceNumber",
+    "sourceAccountIdentifier",
+    "destinationAccountIdentifier",
+    "amount",
+    "currency",
+    "narration",
+)
+
+# Hash fields for the Subsidiary Accounts - Retrieve an account operation.
+SUBSIDIARY_RETRIEVE_HASH_FIELDS: tuple = (
+    "referenceNumber",
+    "accountIdentifier",
+)
+
+# Hash fields for the Subsidiary Accounts - Update an account operation.
+SUBSIDIARY_UPDATE_HASH_FIELDS: tuple = (
+    "referenceNumber",
+    "accountIdentifier",
+    "iifiNumber",
+    "autoSweep.destination",
+    "autoSweep.bankPublicId",
+    "autoSweep.accountNumber",
+    "callbackUrl",
+)
+
+# Hash fields for the Subsidiary Accounts - Get the balance operation.
+SUBSIDIARY_BALANCE_HASH_FIELDS: tuple = (
+    "referenceNumber",
+    "accountIdentifier",
+)
+
+# Hash fields for the Subsidiary Accounts - Get transaction history operation.
+SUBSIDIARY_HISTORY_HASH_FIELDS: tuple = (
+    "accountIdentifier",
+    "startDateTimeUTC",
+    "endDateTimeUTC",
+)
+
+# Hash fields for the Subsidiary Accounts - Handle a funding notification operation.
+SUBSIDIARY_FUNDING_HASH_FIELDS: tuple = (
+    "transactionReference",
+    "transactionDate",
+    "amount",
+    "accountNumber",
+    "timestamp",
+)
+
+# Hash fields for the Subsidiary Accounts - Handle a charge, top-up or transfer callback operation.
+SUBSIDIARY_OPERATION_HASH_FIELDS: tuple = (
+    "externalReferenceNumber",
+    "transactionDate",
+    "amount",
+    "accountNumber",
+)
+
+
 # Hash fields for the Refunds - Refund or cancel a payment request operation.
 REFUND_HASH_FIELDS: tuple = (
     "referenceNumber",

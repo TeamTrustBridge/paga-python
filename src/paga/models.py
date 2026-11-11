@@ -131,6 +131,57 @@ class SubsidiaryAccountResponse(BaseModel):
     currency: Optional[str] = None
 
 
+class SubsidiaryMoneyResponse(BaseModel):
+    """Response returned when charging or topping up a subsidiary account."""
+
+    model_config = ConfigDict(extra="allow")
+
+    referenceNumber: Optional[str] = None
+    statusCode: Optional[str] = None
+    statusMessage: Optional[str] = None
+    transactionId: Optional[str] = None
+    newBalance: Optional[float] = None
+
+
+class SubsidiaryTransferResponse(BaseModel):
+    """Response returned when transferring between subsidiary accounts."""
+
+    model_config = ConfigDict(extra="allow")
+
+    referenceNumber: Optional[str] = None
+    statusCode: Optional[str] = None
+    statusMessage: Optional[str] = None
+    transactionId: Optional[str] = None
+    source: Optional[Dict[str, Any]] = None
+    destination: Optional[Dict[str, Any]] = None
+
+
+class SubsidiaryBalanceResponse(BaseModel):
+    """Response returned when getting a subsidiary account balance."""
+
+    model_config = ConfigDict(extra="allow")
+
+    statusCode: Optional[str] = None
+    accountReference: Optional[str] = None
+    accountNumber: Optional[str] = None
+    balance: Optional[float] = None
+    currency: Optional[str] = None
+    timeStamp: Optional[str] = None
+
+
+class SubsidiaryHistoryResponse(BaseModel):
+    """Response returned when getting a subsidiary account history."""
+
+    model_config = ConfigDict(extra="allow")
+
+    statusCode: Optional[str] = None
+    itemCount: Optional[int] = None
+    totalItems: Optional[int] = None
+    totalPages: Optional[int] = None
+    currentPage: Optional[int] = None
+    transactions: List[TransactionItem] = Field(default_factory=list)
+
+
 class TransactionItem(BaseModel):
     """A single transaction in a business transaction history."""
 

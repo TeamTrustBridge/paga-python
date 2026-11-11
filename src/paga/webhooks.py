@@ -5,7 +5,13 @@ from __future__ import annotations
 import hmac
 from typing import Any, Mapping, Optional
 
-from .auth import DEFAULT_HASH_ALGORITHM, PAYMENT_CALLBACK_HASH_FIELDS, generate_hash
+from .auth import (
+    DEFAULT_HASH_ALGORITHM,
+    PAYMENT_CALLBACK_HASH_FIELDS,
+    SUBSIDIARY_FUNDING_HASH_FIELDS,
+    SUBSIDIARY_OPERATION_HASH_FIELDS,
+    generate_hash,
+)
 from .models import PagaPaymentCallback
 
 # Hash fields for the Checkout payment notification callback.
@@ -90,6 +96,61 @@ def verify_checkout_notification(
         hash_key,
         algorithm=algorithm,
         fields=CHECKOUT_NOTIFICATION_HASH_FIELDS,
+    )
+
+
+def verify_funding_notification(
+    payload: Optional[Mapping[str, Any]],
+    received_hash: Optional[str],
+    hash_key: str,
+    *,
+    algorithm: str = DEFAULT_HASH_ALGORITHM,
+    hash_fields: Optional[tuple] = None,
+) -> bool:
+    """Verify the hash of a subsidiary account funding notification.
+
+    Operation: Subsidiary Accounts - Handle a funding notification.
+
+    Sent when someone pays into a subsidiary account; the hash travels in the
+    ``x-paga-hash-v3`` header, not the body.
+
+    Hash: ``transactionReference + transactionDate + amount + accountNumber +
+    timestamp + hashKey``.
+    """
+    return verify_hash(
+        payload,
+        received_hash,
+        hash_key,
+        algorithm=algorithm,
+        fields=hash_fields or SUBSIDIARY_FUNDING_HASH_FIELDS,
+    )
+
+
+def verify_subsidiary_operation(
+    payload: Optional[Mapping[str, Any]],
+    received_hash: Optional[str],
+    hash_key: str,
+    *,
+    algorithm: str = DEFAULT_HASH_ALGORITHM,
+    hash_fields: Optional[tuple] = None,
+) -> bool:
+    """Verify the hash of a subsidiary charge, top-up or transfer callback.
+
+    Operation: Subsidiary Accounts - Handle a charge, top-up or transfer callback.
+
+    Sent when a charge (``SUBSIDIARY_ACCOUNT_CHARGE_COMPLETE``), top-up
+    (``SUBSIDIARY_ACCOUNT_TOP_UP_COMPLETE``) or transfer
+    (``SUBSIDIARY_ACCOUNT_TRANSFER_COMPLETE``, source account only) completes.
+
+    Hash: ``externalReferenceNumber + transactionDate + amount + accountNumber +
+    hashKey``. ``amount`` is a formatted string with commas, such as ``"1,000.00"``.
+    """
+    return verify_hash(
+        payload,
+        received_hash,
+        hash_key,
+        algorithm=algorithm,
+        fields=hash_fields or SUBSIDIARY_OPERATION_HASH_FIELDS,
     )
 
 
