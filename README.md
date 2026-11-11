@@ -2,6 +2,11 @@
 
 **Async Python SDK for the [Paga Engine API](https://developer-docs.paga.com/).**
 
+> **This is an unofficial SDK.** It is not built, endorsed, supported or
+> published by Paga. It is community-maintained and follows Paga's published
+> API reference. Paga's own documentation is the source of truth — if this
+> documentation and Paga's disagree, Paga's is right.
+
 `paga-python` makes the Paga developer workflow easy for page and integration
 developers building checkout and payment experiences. It wraps the Paga Engine
 API — payments, refunds, money transfers, airtime, bill payments, Direct
@@ -9,7 +14,7 @@ Debit, subsidiary accounts and business account operations — behind a single,
 fully async client.
 
 The TypeScript (`paga-ts`) and Rust (`paga-rs`) counterparts live in the same
-repository and track the same operation set.
+organisation and track the same operation set.
 
 ## Features
 
