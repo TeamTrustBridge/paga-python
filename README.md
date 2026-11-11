@@ -1,28 +1,72 @@
 # paga-python
 
-Async Python SDK for the **Paga Engine API**, built to make the developer workflow
-easy for page/integration developers building checkout and payment experiences.
+**Async Python SDK for the [Paga Engine API](https://developer-docs.paga.com/).**
 
-## Status
+`paga-python` makes the Paga developer workflow easy for page and integration
+developers building checkout and payment experiences. It wraps every Paga Engine
+endpoint — payments, refunds, money transfers, airtime, bill payments, subsidiary
+accounts, and business account operations — behind a single, fully async client.
 
-Phase 3 in progress — action operations shipped and hash-verified:
+The TypeScript (`paga-ts`) and Rust (`paga-rs`) counterparts are in the pipeline.
 
-- Async client foundation (`PagaClient`, async context manager)
-- Credentials + Paga hash signing (validated against Paga's documented hash examples)
-- Checkout: create payment request, get payment status, verify charge
-- Refunds: refund / cancel payment request
-- Money transfer: send money to bank / Paga wallet
-- Airtime & data: buy airtime / data
-- Bill payment: pay bill
+## Features
 
-Full endpoint coverage is being delivered in phases across the sibling packages
-`paga-ts` (TypeScript) and `paga-rs` (Rust).
+- **Async all the way through** — built on `httpx.AsyncClient`, usable as an async context manager.
+- **Simple interface** — every operation takes plain keyword-only parameters; no raw JSON payloads needed.
+- **Built-in Paga hash signing** — SHA-512 request hashing validated against Paga's documented examples, plus webhook signature verification helpers.
+- **Typed responses** — pydantic models for every endpoint response.
+- **Typed exceptions** — `PagaError`, `PagaAuthenticationError`, `PagaAPIError`, `PagaRateLimitError`.
 
-## Install
+## Installation
 
 ```bash
 pip install -e .
 ```
+
+Requires Python 3.11+ and runs on an asyncio event loop.
+
+## Quick start
+
+```python
+import asyncio
+from paga import PagaClient
+
+async def main() -> None:
+    async with PagaClient(
+        public_id="YOUR_PUBLIC_KEY",
+        credentials="YOUR_SECRET_KEY",
+        hash_key="YOUR_HASH_KEY",
+        environment="test",  # or "live"
+    ) as client:
+        payment = await client.create_payment(
+            reference_number="ORD-2026-0187",
+            amount=50,
+            payer_name="Bello Ramon",
+            payer_phone_number="08064343187",
+            payee_name="Your business name",
+            call_back_url="https://yourstore.com/webhooks/paga",
+            payment_methods=["BANK_TRANSFER"],
+        )
+        status = await client.get_payment_status(reference_number="ORD-2026-0187")
+        # status.data.statusCode -> "0" means paid
+
+asyncio.run(main())
+```
+
+## Supported operations
+
+| Area | Operation | Method | Endpoint |
+|---|---|---|---|
+| Checkout | Create payment request | `create_payment` | `POST /paymentRequest` |
+| Checkout | Check payment status | `get_payment_status` | `POST /status` |
+| Checkout | Verify charge | `verify_charge` | `POST /checkout/transaction/verify` |
+| Refunds | Refund / cancel | `refund_payment` | `POST /refund/v2` |
+| Money transfer | Send money | `send_money` | `POST /depositToBank` |
+| Airtime & data | Buy airtime / data | `buy_airtime` | `POST /airtimePurchase` |
+| Bill payment | Pay bill | `pay_bill` | `POST /merchantPayment` |
+| Business | Check balance | `get_business_balance` | `POST /accountBalance` |
+| Business | Transaction history | `get_business_transactions` | `POST /transactionHistory` |
+| Subsidiary accounts | Create account | `create_subsidiary_account` | `POST /subsidiary-accounts` |
 
 ## Usage
 
@@ -129,6 +173,19 @@ history = await client.get_business_transactions(
 # history.items -> transactions between the two dates
 ```
 
+### Create a subsidiary account
+
+```python
+account = await client.create_subsidiary_account(
+    reference_number="REF-100005550002",
+    account_reference="CUST-000184-WALLET",
+    account_name="Bello Ramon",
+    iifi_number="22222132329",
+    callback_url="https://yourstore.com/webhooks/paga",
+)
+# account.statusCode -> "0" means created; "102" means duplicate reference
+```
+
 ## Webhook verification
 
 ```python
@@ -141,6 +198,21 @@ ok = verify_checkout_notification(payload, received_hash, hash_key)
 ok = verify_payment_callback(payload, received_hash, hash_key)
 ```
 
+## Error handling
+
+```python
+from paga import PagaError
+
+try:
+    payment = await client.create_payment(...)
+except PagaAuthenticationError:
+    ...  # invalid public key / secret key / hash key
+except PagaRateLimitError:
+    ...  # 429 from Paga
+except PagaAPIError as err:
+    ...  # err.responseCode, err.status_code, err.message
+```
+
 ## License
 
-GPL-3.0 (see [LICENSE](LICENSE))
+GPL-3.0 — see [LICENSE](LICENSE).

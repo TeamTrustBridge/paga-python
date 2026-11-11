@@ -56,6 +56,17 @@ TRANSACTION_HISTORY_HASH_FIELDS: tuple = (
     "referenceNumber",
 )
 
+# Hash fields for the Subsidiary Accounts - Create an account operation.
+SUBSIDIARY_ACCOUNT_HASH_FIELDS: tuple = (
+    "referenceNumber",
+    "accountReference",
+    "iifiNumber",
+    "autoSweep.bankPublicId",
+    "autoSweep.destination",
+    "autoSweep.accountNumber",
+    "callbackUrl",
+)
+
 # Hash fields for the Refunds - Refund or cancel a payment request operation.
 REFUND_HASH_FIELDS: tuple = (
     "referenceNumber",

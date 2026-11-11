@@ -116,6 +116,21 @@ class AccountBalanceResponse(BaseModel):
     currency: Optional[str] = None
 
 
+class SubsidiaryAccountResponse(BaseModel):
+    """Response returned when creating a subsidiary account."""
+
+    model_config = ConfigDict(extra="allow")
+
+    referenceNumber: Optional[str] = None
+    statusCode: Optional[str] = None
+    statusMessage: Optional[str] = None
+    accountNumber: Optional[str] = None
+    accountReference: Optional[str] = None
+    status: Optional[str] = None
+    balance: Optional[float] = None
+    currency: Optional[str] = None
+
+
 class TransactionItem(BaseModel):
     """A single transaction in a business transaction history."""
 

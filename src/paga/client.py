@@ -15,6 +15,7 @@ from .auth import (
     PAYMENT_REQUEST_HASH_FIELDS,
     PAYMENT_STATUS_HASH_FIELDS,
     REFUND_HASH_FIELDS,
+    SUBSIDIARY_ACCOUNT_HASH_FIELDS,
     TRANSACTION_HISTORY_HASH_FIELDS,
     PagaAuth,
     generate_hash,
@@ -30,6 +31,7 @@ from .models import (
     PaymentStatusResponse,
     PurchaseResponse,
     RefundResponse,
+    SubsidiaryAccountResponse,
     TransactionHistoryResponse,
 )
 
@@ -637,3 +639,100 @@ class PagaClient:
             raise_on_error=False,
         )
         return MerchantPaymentResponse.model_validate(response.model_dump())
+
+    async def create_subsidiary_account(
+        self,
+        *,
+        reference_number: str,
+        account_reference: str,
+        account_name: str,
+        first_name: Optional[str] = None,
+        last_name: Optional[str] = None,
+        phone_number: Optional[str] = None,
+        email: Optional[str] = None,
+        iifi_number: Optional[str] = None,
+        funding_transaction_limit: Optional[float] = None,
+        funding_daily_limit: Optional[float] = None,
+        status: Optional[str] = None,
+        auto_sweep_destination: Optional[str] = None,
+        auto_sweep_bank_public_id: Optional[str] = None,
+        auto_sweep_account_number: Optional[str] = None,
+        callback_url: Optional[str] = None,
+    ) -> SubsidiaryAccountResponse:
+        """Create a subsidiary account.
+
+        Operation: Subsidiary Accounts - Create an account.
+
+        Creates a subsidiary account. Leave out ``auto_sweep_destination`` for a
+        ledger-backed account that holds funds; set it to ``"VIRTUAL_ACCOUNT"`` or
+        ``"BANK"`` for a virtual account that settles straight away.
+
+        Reusing a ``reference_number`` or ``account_reference`` returns status
+        code ``102`` (duplicate) and never creates a second account.
+
+        Args:
+            reference_number: Your unique reference for this request.
+            account_reference: Your permanent ID for the account (e.g.
+                ``CUST-000184-WALLET``).
+            account_name: Account holder name.
+            first_name: Optional first name of the account holder.
+            last_name: Optional last name of the account holder.
+            phone_number: Optional phone number of the account holder.
+            email: Optional email address of the account holder.
+            iifi_number: BVN or NIN of the account holder. Hash value 3.
+            funding_transaction_limit: Optional funding transaction limit.
+            funding_daily_limit: Optional funding daily limit.
+            status: Optional account status, e.g. ``"ACTIVE"`` or ``"DISABLED"``.
+            auto_sweep_destination: Optional ``"VIRTUAL_ACCOUNT"`` or ``"BANK"``.
+            auto_sweep_bank_public_id: Bank public ID, only when the destination
+                is ``"BANK"``.
+            auto_sweep_account_number: Bank account number, only when the
+                destination is ``"BANK"``.
+            callback_url: Where Paga sends callbacks. Optional.
+
+        Returns:
+            The parsed :class:`SubsidiaryAccountResponse`.
+
+        ``status_code`` of ``"102"`` means a duplicate reference was used.
+        """
+        payload: Dict[str, Any] = {
+            "referenceNumber": reference_number,
+            "accountReference": account_reference,
+            "accountName": account_name,
+        }
+        if first_name is not None:
+            payload["firstName"] = first_name
+        if last_name is not None:
+            payload["lastName"] = last_name
+        if phone_number is not None:
+            payload["phoneNumber"] = phone_number
+        if email is not None:
+            payload["email"] = email
+        if iifi_number is not None:
+            payload["iifiNumber"] = iifi_number
+        if funding_transaction_limit is not None:
+            payload["fundingTransactionLimit"] = funding_transaction_limit
+        if funding_daily_limit is not None:
+            payload["fundingDailyLimit"] = funding_daily_limit
+        if status is not None:
+            payload["status"] = status
+        if auto_sweep_destination is not None:
+            auto_sweep: Dict[str, Any] = {"destination": auto_sweep_destination}
+            if auto_sweep_destination == "BANK":
+                if auto_sweep_bank_public_id is not None:
+                    auto_sweep["bankPublicId"] = auto_sweep_bank_public_id
+                if auto_sweep_account_number is not None:
+                    auto_sweep["accountNumber"] = auto_sweep_account_number
+            payload["autoSweep"] = auto_sweep
+        if callback_url is not None:
+            payload["callbackUrl"] = callback_url
+
+        response = await self._request(
+            "POST",
+            "/subsidiary-accounts",
+            payload,
+            use_hash=True,
+            use_basic=True,
+            hash_fields=SUBSIDIARY_ACCOUNT_HASH_FIELDS,
+        )
+        return SubsidiaryAccountResponse.model_validate(response.model_dump())

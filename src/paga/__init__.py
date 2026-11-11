@@ -26,6 +26,7 @@ from .models import (
     PaymentStatusResponse,
     PurchaseResponse,
     RefundResponse,
+    SubsidiaryAccountResponse,
     TransactionHistoryResponse,
     TransactionItem,
 )
@@ -60,6 +61,7 @@ __all__ = [
     "PaymentStatusResponse",
     "PurchaseResponse",
     "RefundResponse",
+    "SubsidiaryAccountResponse",
     "TransactionHistoryResponse",
     "TransactionItem",
     "__version__",
