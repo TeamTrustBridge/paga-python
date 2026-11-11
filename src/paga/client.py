@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Mapping, Optional
+import asyncio
+import json
+import time
+from typing import Any, Dict, Mapping, Optional, Union
 
 import httpx
 
@@ -15,8 +18,12 @@ from .auth import (
 )
 from .business import BusinessMixin
 from .checkout import CheckoutMixin
+from .customer import CustomerMixin
+from .direct_debit import DirectDebitMixin
+from .directory import DirectoryMixin
 from .exceptions import PagaAPIError, PagaAuthenticationError, PagaRateLimitError
 from .models import PagaResponse
+from .persistent import PersistentPaymentAccountMixin
 
 DEFAULT_COLLECT_TEST_BASE_URL = "https://beta-collect.paga.com"
 DEFAULT_COLLECT_LIVE_BASE_URL = "https://collect.paga.com"
@@ -25,12 +32,28 @@ DEFAULT_CHECKOUT_LIVE_BASE_URL = "https://checkout.paga.com"
 DEFAULT_BUSINESS_TEST_BASE_URL = "https://beta.mypaga.com/paga-webservices/business-rest/secured"
 DEFAULT_BUSINESS_LIVE_BASE_URL = "https://www.mypaga.com/paga-webservices/business-rest/secured"
 
+# A multipart part carrying a JSON document.
+JsonPart = Dict[str, Any]
+# A multipart part carrying a file: the bytes, and optionally a filename and
+# a content type.
+FilePart = Union[bytes, bytearray, "tuple[Optional[str], bytes, Optional[str]]"]
 
-class PagaClient(CheckoutMixin, ActionMixin, BusinessMixin):
+
+class PagaClient(
+    CheckoutMixin,
+    ActionMixin,
+    BusinessMixin,
+    DirectoryMixin,
+    DirectDebitMixin,
+    PersistentPaymentAccountMixin,
+    CustomerMixin,
+):
     """Async client for the Paga Engine API.
 
-    Combines the checkout, action and business / subsidiary operation mixins
-    and owns the shared async HTTP plumbing (auth, hashing, errors, base URLs).
+    Combines the checkout, action, business / subsidiary, directory, Direct
+    Debit, persistent payment account and customer registration operation
+    mixins and owns the shared async HTTP plumbing (auth, hashing, errors,
+    base URLs).
     """
 
     def __init__(
@@ -44,6 +67,8 @@ class PagaClient(CheckoutMixin, ActionMixin, BusinessMixin):
         checkout_base_url: Optional[str] = None,
         business_base_url: Optional[str] = None,
         timeout: float = 30.0,
+        max_retries: int = 0,
+        retry_backoff: float = 0.5,
     ) -> None:
         if environment not in {"test", "live"}:
             raise ValueError("environment must be either 'test' or 'live'")
@@ -62,6 +87,8 @@ class PagaClient(CheckoutMixin, ActionMixin, BusinessMixin):
             DEFAULT_BUSINESS_TEST_BASE_URL if environment == "test" else DEFAULT_BUSINESS_LIVE_BASE_URL
         )
         self.timeout = httpx.Timeout(timeout)
+        self.max_retries = max(0, int(max_retries))
+        self.retry_backoff = float(retry_backoff)
         self.auth = PagaAuth(public_id=public_id, credentials=credentials, hash_key=hash_key)
         self._http: Optional[httpx.AsyncClient] = None
 
@@ -101,6 +128,7 @@ class PagaClient(CheckoutMixin, ActionMixin, BusinessMixin):
         hash_fields: Optional[tuple] = None,
         raise_on_error: bool = True,
         params: Optional[Mapping[str, Any]] = None,
+        hash_payload: Optional[Mapping[str, Any]] = None,
     ) -> PagaResponse:
         """Execute a request against the Paga Engine API.
 
@@ -116,6 +144,9 @@ class PagaClient(CheckoutMixin, ActionMixin, BusinessMixin):
             hash_fields: Ordered hash field paths used when computing the hash.
             raise_on_error: Raise on unsuccessful operation responses. Defaults to
                 ``True``.
+            hash_payload: The payload the hash is computed over, when it is
+                not the request body. Used by operations that sign fields the
+                body does not carry.
 
         Returns:
             The parsed :class:`PagaResponse`.
@@ -128,20 +159,22 @@ class PagaClient(CheckoutMixin, ActionMixin, BusinessMixin):
         url = f"{target_base}{path}"
         http = await self._ensure_client()
 
+        signed = hash_payload if hash_payload is not None else payload
+
         auth = self.auth.basic_auth() if use_basic else None
         headers: Optional[Dict[str, str]] = None
         if use_basic:
-            if use_hash and payload is not None:
+            if use_hash and signed is not None:
                 headers = {
                     "hash": generate_hash(
-                        payload,
+                        signed,
                         self.hash_key,
                         algorithm=DEFAULT_HASH_ALGORITHM,
                         fields=hash_fields or PAYMENT_REQUEST_HASH_FIELDS,
                     ),
                 }
-        elif use_hash and payload is not None:
-            headers = self.auth.build_headers(payload, hash_fields=hash_fields)
+        elif use_hash and signed is not None:
+            headers = self.auth.build_headers(signed, hash_fields=hash_fields)
 
         request_kwargs: Dict[str, Any] = {
             "method": method.upper(),
@@ -155,7 +188,7 @@ class PagaClient(CheckoutMixin, ActionMixin, BusinessMixin):
         # GET requests carry no body; hash-relevant values travel in query params.
         if payload is not None and method.upper() != "GET":
             request_kwargs["json"] = dict(payload)
-        response = await http.request(**request_kwargs)
+        response = await self._send(http, request_kwargs)
 
         if response.status_code in (401, 403):
             raise PagaAuthenticationError(
@@ -173,6 +206,120 @@ class PagaClient(CheckoutMixin, ActionMixin, BusinessMixin):
                 payload=result,
             )
         return result
+
+    async def _multipart_request(
+        self,
+        method: str,
+        path: str,
+        parts: Mapping[str, Any],
+        *,
+        hash_payload: Optional[Mapping[str, Any]] = None,
+        hash_fields: Optional[tuple] = None,
+        base_url: Optional[str] = None,
+        raise_on_error: bool = True,
+    ) -> PagaResponse:
+        """Execute a multipart/form-data request against the Paga Engine API.
+
+        Paga's customer registration endpoints take a JSON part plus one or
+        two image parts. The hash is computed over the JSON part, not over
+        the multipart envelope.
+
+        Args:
+            method: HTTP method.
+            path: Endpoint path relative to the base URL.
+            parts: The multipart parts. A ``dict`` value becomes a JSON
+                part; ``bytes`` or a ``(filename, bytes, content_type)``
+                tuple becomes a file part.
+            hash_payload: The payload the hash is computed over. Defaults to
+                the JSON part, when there is exactly one.
+            hash_fields: Ordered hash field paths used when computing the hash.
+            base_url: Override the target base URL. Defaults to the business
+                base URL.
+            raise_on_error: Raise on unsuccessful operation responses.
+
+        Returns:
+            The parsed :class:`PagaResponse`.
+        """
+        target_base = (base_url or self.business_base_url).rstrip("/")
+        url = f"{target_base}{path}"
+        http = await self._ensure_client()
+
+        files: Dict[str, Any] = {}
+        json_parts: Dict[str, Any] = {}
+        for name, value in parts.items():
+            if isinstance(value, dict):
+                files[name] = (None, json.dumps(value), "application/json")
+                json_parts[name] = value
+            elif isinstance(value, (bytes, bytearray)):
+                files[name] = ("upload", bytes(value), "application/octet-stream")
+            else:
+                filename, content, content_type = value
+                files[name] = (filename, content, content_type)
+
+        if hash_payload is None and len(json_parts) == 1:
+            hash_payload = next(iter(json_parts.values()))
+
+        headers: Optional[Dict[str, str]] = None
+        if hash_payload is not None:
+            headers = self.auth.build_headers(hash_payload, hash_fields=hash_fields)
+
+        request_kwargs: Dict[str, Any] = {
+            "method": method.upper(),
+            "url": url,
+            "files": files,
+        }
+        if headers is not None:
+            request_kwargs["headers"] = headers
+        response = await self._send(http, request_kwargs)
+
+        if response.status_code in (401, 403):
+            raise PagaAuthenticationError(
+                f"Paga authentication failed with status {response.status_code}"
+            )
+        if response.status_code >= 400:
+            raise self._to_api_error(response)
+
+        body: Any = response.json() if response.content else {}
+        result = PagaResponse.model_validate(body)
+        if raise_on_error and not result.is_success:
+            raise PagaAPIError(
+                message=result.message or "Paga request failed",
+                response_code=result.responseCode,
+                payload=result,
+            )
+        return result
+
+    async def _send(
+        self,
+        http: httpx.AsyncClient,
+        request_kwargs: Dict[str, Any],
+    ) -> httpx.Response:
+        """Send a request, retrying rate-limited calls when enabled.
+
+        Only HTTP 429 is retried. A rate-limited request was rejected before
+        Paga processed it, so replaying it is safe. Server errors are
+        **not** retried: a 5xx or a timeout leaves the outcome unknown, and
+        Paga's guidance is to check the transaction status with the original
+        reference number rather than to send again.
+        """
+        attempt = 0
+        while True:
+            response = await http.request(**request_kwargs)
+            if response.status_code != 429 or attempt >= self.max_retries:
+                return response
+            delay = self._retry_delay(response, attempt)
+            await asyncio.sleep(delay)
+            attempt += 1
+
+    def _retry_delay(self, response: httpx.Response, attempt: int) -> float:
+        """Seconds to wait before the next attempt."""
+        retry_after = response.headers.get("retry-after")
+        if retry_after:
+            try:
+                return float(retry_after)
+            except ValueError:
+                pass
+        return self.retry_backoff * (2**attempt)
 
     def _to_api_error(self, response: httpx.Response) -> PagaAPIError:
         try:

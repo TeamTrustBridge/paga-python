@@ -192,6 +192,7 @@ class ActionMixin:
         currency: str = "NGN",
         payment_channel: Optional[str] = None,
         locale: Optional[str] = None,
+        merchant_service_product_code: Optional[str] = None,
     ) -> MerchantPaymentResponse:
         """Pay a bill from the business balance.
 
@@ -211,6 +212,8 @@ class ActionMixin:
             currency: Transaction currency. Defaults to ``"NGN"``.
             payment_channel: Optional payment channel.
             locale: Optional locale.
+            merchant_service_product_code: Optional chosen service code, as
+                returned by :meth:`get_merchant_services`.
 
         Returns:
             The parsed :class:`MerchantPaymentResponse`.
@@ -228,6 +231,8 @@ class ActionMixin:
             payload["paymentChannel"] = payment_channel
         if locale is not None:
             payload["locale"] = locale
+        if merchant_service_product_code is not None:
+            payload["merchantServiceProductCode"] = merchant_service_product_code
         response = await self._request(
             "POST",
             "/merchantPayment",

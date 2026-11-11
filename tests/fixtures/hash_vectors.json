@@ -1,0 +1,121 @@
+{
+  "$comment": "Shared hash vectors for the Paga Engine SDKs. Consumed by paga-python, paga-ts and paga-rs test suites. The `message` is the exact concatenation Paga signs (hash fields in order, then the hash key); the `digest` is its SHA-512 hex digest. Regenerate with: printf '%s' \"$message\" | sha512sum",
+  "hashKey": "hashkey123",
+  "vectors": [
+    {
+      "name": "payment_request_with_email",
+      "operation": "POST /paymentRequest",
+      "fields": [
+        "referenceNumber",
+        "amount",
+        "currency",
+        "payer.phoneNumber",
+        "payer.email"
+      ],
+      "payload": {
+        "referenceNumber": "REF-000001",
+        "amount": 5000,
+        "currency": "NGN",
+        "payer": {
+          "phoneNumber": "08031234567",
+          "email": "test@example.com"
+        }
+      },
+      "message": "REF-0000015000NGN08031234567test@example.comhashkey123",
+      "digest": "29d3719a0dd0d51de3fd7ed504e227c9a21b4a3403ae89616883eac1c327b86d035e195dd2ce4cd37d2ae552322a6cd31382e12a1bc6f8bd1923f842cda16c46"
+    },
+    {
+      "name": "payment_request_without_email",
+      "operation": "POST /paymentRequest",
+      "fields": [
+        "referenceNumber",
+        "amount",
+        "currency",
+        "payer.phoneNumber",
+        "payer.email"
+      ],
+      "payload": {
+        "referenceNumber": "REF-000001",
+        "amount": 5000,
+        "currency": "NGN",
+        "payer": {
+          "phoneNumber": "08031234567"
+        }
+      },
+      "message": "REF-0000015000NGN08031234567hashkey123",
+      "digest": "9f6eb7fa8f3df6fd6297d54102e968e3d9ba768c8eebcf1532fe90c2cdba293a2e0f8e36d464ea7be25cba5e13320482f3d953ebc0a93f36e88cb2c5d134d81f"
+    },
+    {
+      "name": "money_transfer",
+      "operation": "POST /depositToBank",
+      "fields": [
+        "referenceNumber",
+        "amount",
+        "destinationBankUUID",
+        "destinationBankAccountNumber"
+      ],
+      "payload": {
+        "referenceNumber": "REF-000002",
+        "amount": "5000.00",
+        "destinationBankUUID": "40090E2F-7446-4217-9345-7BBAB7043C4C",
+        "destinationBankAccountNumber": "0000000000"
+      },
+      "message": "REF-0000025000.0040090E2F-7446-4217-9345-7BBAB7043C4C0000000000hashkey123",
+      "digest": "28df02de2ae279a9d48fde1318663b55756cdef670fc2c9abd46c0196c06f7f84e6324a4aa3e8e801d2545798778bfbee66478625c3fdaef413a3cf43a5f496e"
+    },
+    {
+      "name": "payment_callback",
+      "operation": "Dynamic virtual account callback",
+      "fields": [
+        "notificationId",
+        "statusCode",
+        "externalReferenceNumber",
+        "state",
+        "outstandingBalance"
+      ],
+      "payload": {
+        "notificationId": "NOTIF-123",
+        "statusCode": "0",
+        "externalReferenceNumber": "REF-000001",
+        "state": "COMPLETED",
+        "outstandingBalance": 1000.0
+      },
+      "message": "NOTIF-1230REF-000001COMPLETED1000.00hashkey123",
+      "digest": "20c9e6e9ca158a71226b9923d03bcb44558987b458bd841118f8f870086affee98165d7a55c574407ef9d342f3997d6344fe7a8735cdb961d898144ffdd08a17"
+    },
+    {
+      "name": "subsidiary_operation_callback",
+      "operation": "Subsidiary account charge/top-up/transfer callback",
+      "fields": [
+        "externalReferenceNumber",
+        "transactionDate",
+        "amount",
+        "accountNumber"
+      ],
+      "payload": {
+        "externalReferenceNumber": "EXT-REF-1",
+        "transactionDate": "2026-11-03 11:02:25.56",
+        "amount": "1,000.00",
+        "accountNumber": "12345678901"
+      },
+      "message": "EXT-REF-12026-11-03 11:02:25.561,000.0012345678901hashkey123",
+      "digest": "58d1304989558767a0af0e74f97197b790d8c0bec5a7458240a1f436b8ad0d063f2409be1775ea53feef3f5234a30cd5f48c82c87790c502f3d481c5da819f4e"
+    },
+    {
+      "name": "direct_debit_charge_mandate",
+      "operation": "POST /chargeDebitMandate",
+      "fields": [
+        "referenceNumber",
+        "amount",
+        "accountReference"
+      ],
+      "payload": {
+        "referenceNumber": "REF-DD-001",
+        "amount": "600.00",
+        "accountReference": "CUST-000184-WALLET"
+      },
+      "message": "REF-DD-001600.00CUST-000184-WALLEThashkey123",
+      "digest": "f9ea0f272c84d638c1db3eac36a56ef9ee51d8f0edbcfced68f251ca8e87a5b702016e84ec1a3da8e9919566bd8aefd37e9303150b6dce1d0a3e6a966afaf341"
+    }
+  ]
+}
