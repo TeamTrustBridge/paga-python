@@ -26,6 +26,8 @@ from .models import (
     PaymentStatusResponse,
     PurchaseResponse,
     RefundResponse,
+    TransactionHistoryResponse,
+    TransactionItem,
 )
 from .webhooks import (
     parse_payment_callback,
@@ -58,6 +60,8 @@ __all__ = [
     "PaymentStatusResponse",
     "PurchaseResponse",
     "RefundResponse",
+    "TransactionHistoryResponse",
+    "TransactionItem",
     "__version__",
     "parse_payment_callback",
     "verify_checkout_notification",

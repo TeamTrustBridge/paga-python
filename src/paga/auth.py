@@ -51,6 +51,11 @@ PAYMENT_STATUS_HASH_FIELDS: tuple = (
     "referenceNumber",
 )
 
+# Hash fields for the Get your transaction history operation.
+TRANSACTION_HISTORY_HASH_FIELDS: tuple = (
+    "referenceNumber",
+)
+
 # Hash fields for the Refunds - Refund or cancel a payment request operation.
 REFUND_HASH_FIELDS: tuple = (
     "referenceNumber",

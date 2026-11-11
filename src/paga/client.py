@@ -15,6 +15,7 @@ from .auth import (
     PAYMENT_REQUEST_HASH_FIELDS,
     PAYMENT_STATUS_HASH_FIELDS,
     REFUND_HASH_FIELDS,
+    TRANSACTION_HISTORY_HASH_FIELDS,
     PagaAuth,
     generate_hash,
 )
@@ -26,8 +27,10 @@ from .models import (
     DepositToBankResponse,
     MerchantPaymentResponse,
     PagaResponse,
+    PaymentStatusResponse,
     PurchaseResponse,
     RefundResponse,
+    TransactionHistoryResponse,
 )
 
 DEFAULT_COLLECT_TEST_BASE_URL = "https://beta-collect.paga.com"
@@ -338,6 +341,43 @@ class PagaClient:
             raise_on_error=False,
         )
         return AccountBalanceResponse.model_validate(response.model_dump())
+
+    async def get_business_transactions(
+        self,
+        *,
+        reference_number: str,
+        start_date_utc: str,
+        end_date_utc: str,
+    ) -> TransactionHistoryResponse:
+        """Get the business transaction history.
+
+        Operation: Your business account - Get your transaction history.
+
+        Returns every transaction on the business account between two dates:
+        money in, money out and fees, up to 10,000 at a time.
+
+        Args:
+            reference_number: Your unique history reference.
+            start_date_utc: Start of the range, in UTC.
+            end_date_utc: End of the range, in UTC.
+
+        Returns:
+            The parsed :class:`TransactionHistoryResponse`.
+        """
+        response = await self._request(
+            "POST",
+            "/transactionHistory",
+            {
+                "referenceNumber": reference_number,
+                "startDateUTC": start_date_utc,
+                "endDateUTC": end_date_utc,
+            },
+            use_hash=True,
+            use_basic=False,
+            base_url=self.business_base_url,
+            hash_fields=TRANSACTION_HISTORY_HASH_FIELDS,
+        )
+        return TransactionHistoryResponse.model_validate(response.model_dump())
 
     async def verify_charge(
         self,

@@ -116,6 +116,29 @@ class AccountBalanceResponse(BaseModel):
     currency: Optional[str] = None
 
 
+class TransactionItem(BaseModel):
+    """A single transaction in a business transaction history."""
+
+    model_config = ConfigDict(extra="allow")
+
+    referenceNumber: Optional[str] = None
+    status: Optional[str] = None
+    amount: Optional[float] = None
+    fee: Optional[float] = None
+    balance: Optional[float] = None
+    dateUTC: Optional[int] = None
+
+
+class TransactionHistoryResponse(BaseModel):
+    """Response returned when fetching the business transaction history."""
+
+    model_config = ConfigDict(extra="allow")
+
+    referenceNumber: Optional[str] = None
+    responseCode: Optional[int] = None
+    items: List[TransactionItem] = Field(default_factory=list)
+
+
 class PaymentStatusData(BaseModel):
     """Payment status details nested in a payment status response."""
 

@@ -118,6 +118,17 @@ balance = await client.get_business_balance(reference_number="BAL-2026-0042")
 # balance.availableBalance -> what you can actually send before a payout run
 ```
 
+### Get business transaction history
+
+```python
+history = await client.get_business_transactions(
+    reference_number="HIS-2026-0042",
+    start_date_utc="2026-11-01T00:00:00",
+    end_date_utc="2026-11-04T00:00:00",
+)
+# history.items -> transactions between the two dates
+```
+
 ## Webhook verification
 
 ```python
