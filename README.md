@@ -67,6 +67,13 @@ asyncio.run(main())
 | Business | Check balance | `get_business_balance` | `POST /accountBalance` |
 | Business | Transaction history | `get_business_transactions` | `POST /transactionHistory` |
 | Subsidiary accounts | Create account | `create_subsidiary_account` | `POST /subsidiary-accounts` |
+| Subsidiary accounts | Charge account | `charge_subsidiary_account` | `POST /subsidiary-accounts/{accountReference}/charge` |
+| Subsidiary accounts | Top up account | `top_up_subsidiary_account` | `POST /subsidiary-accounts/{accountReference}/topup` |
+| Subsidiary accounts | Transfer between accounts | `transfer_between_subsidiary_accounts` | `POST /subsidiary-accounts/transfer` |
+| Subsidiary accounts | Retrieve account | `retrieve_subsidiary_account` | `GET /subsidiary-accounts/{accountReference}` |
+| Subsidiary accounts | Update account | `update_subsidiary_account` | `PUT /subsidiary-accounts/{accountReference}` |
+| Subsidiary accounts | Get balance | `get_subsidiary_balance` | `GET /subsidiary-accounts/{accountReference}/balance` |
+| Subsidiary accounts | History | `get_subsidiary_history` | `GET /subsidiary-accounts/{accountReference}/history` |
 
 ## Usage
 
@@ -186,6 +193,74 @@ account = await client.create_subsidiary_account(
 # account.statusCode -> "0" means created; "102" means duplicate reference
 ```
 
+### Charge a subsidiary account
+
+```python
+charge = await client.charge_subsidiary_account(
+    account_reference="CUST-000184-WALLET",
+    reference_number="REF-CHARGE-001",
+    amount=1000,
+    currency="NGN",
+    narration="Service fee",
+)
+# charge.transactionId -> the debit transaction
+# charge.newBalance -> balance after the debit
+```
+
+### Top up a subsidiary account
+
+```python
+top_up = await client.top_up_subsidiary_account(
+    account_reference="CUST-000184-WALLET",
+    reference_number="REF-TOPUP-001",
+    amount=500,
+    currency="NGN",
+    narration="Bonus credit",
+)
+# top_up.newBalance -> balance after the credit
+```
+
+### Transfer between subsidiary accounts
+
+```python
+transfer = await client.transfer_between_subsidiary_accounts(
+    source_account_reference="CUST-000184-WALLET",
+    destination_account_reference="CUST-000221-WALLET",
+    reference_number="REF-TRANSFER-001",
+    amount=1500,
+    currency="NGN",
+    narration="Payment for goods",
+)
+```
+
+### Retrieve / update / balance / history for a subsidiary account
+
+```python
+account = await client.retrieve_subsidiary_account(
+    account_reference="CUST-000184-WALLET",
+    reference_number="REF-GET-001",
+)
+account = await client.update_subsidiary_account(
+    account_reference="CUST-000184-WALLET",
+    reference_number="REF-UPDATE-001",
+    status="DISABLED",  # send only what you want to change
+)
+
+balance = await client.get_subsidiary_balance(
+    account_reference="CUST-000184-WALLET",
+    reference_number="REF-BAL-001",
+)
+
+history = await client.get_subsidiary_history(
+    account_reference="CUST-000184-WALLET",
+    reference_number="REF-HIS-001",
+    start_date_time_utc="2026-06-01T00:00:00",
+    end_date_time_utc="2026-06-30T23:59:59",
+    page_number=0,
+    page_size=20,
+)
+```
+
 ## Webhook verification
 
 ```python
@@ -196,6 +271,12 @@ ok = verify_checkout_notification(payload, received_hash, hash_key)
 
 # Dynamic virtual account callback: hash = notificationId + statusCode + externalReferenceNumber + state + outstandingBalance + hashKey
 ok = verify_payment_callback(payload, received_hash, hash_key)
+
+# Subsidiary funding notification: hash = transactionReference + transactionDate + amount + accountNumber + timestamp + hashKey
+ok = verify_funding_notification(payload, received_hash, hash_key)
+
+# Subsidiary charge / top-up / transfer callback: hash = externalReferenceNumber + transactionDate + amount + accountNumber + hashKey
+ok = verify_subsidiary_operation(payload, received_hash, hash_key)
 ```
 
 ## Error handling
