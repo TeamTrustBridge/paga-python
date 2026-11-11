@@ -8,7 +8,8 @@
 > documentation and Paga's disagree, Paga's is right.
 
 > **Documentation:** <https://teamtrustbridge.github.io/paga-python-docs/> — the full
-> Python API reference, organised like Paga's own documentation.
+> Python API reference, organised like Paga's own documentation. Source:
+> [TeamTrustBridge/paga-python-docs](https://github.com/TeamTrustBridge/paga-python-docs).
 
 `paga-python` makes the Paga developer workflow easy for page and integration
 developers building checkout and payment experiences. It wraps the Paga Engine
