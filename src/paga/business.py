@@ -1,4 +1,9 @@
-"""Business and subsidiary account operations for the Paga Engine API."""
+"""Business account operations for the Paga Engine API.
+
+Covers the **Manage accounts → Your business account** section of Paga's
+documentation, plus the Business API operations that act on the account
+itself.
+"""
 
 from __future__ import annotations
 
@@ -8,40 +13,24 @@ from .auth import (
     ACCOUNT_BALANCE_HASH_FIELDS,
     DISPENSE_CASH_HASH_FIELDS,
     GET_OPERATION_STATUS_HASH_FIELDS,
-    MONEY_TRANSFER_BULK_HASH_FIELDS,
     ONBOARD_MERCHANT_HASH_FIELDS,
-    PAGA_WALLET_TRANSFER_HASH_FIELDS,
-    SUBSIDIARY_ACCOUNT_HASH_FIELDS,
-    SUBSIDIARY_BALANCE_HASH_FIELDS,
-    SUBSIDIARY_CHARGE_HASH_FIELDS,
-    SUBSIDIARY_HISTORY_HASH_FIELDS,
-    SUBSIDIARY_RETRIEVE_HASH_FIELDS,
-    SUBSIDIARY_TOPUP_HASH_FIELDS,
-    SUBSIDIARY_TRANSFER_HASH_FIELDS,
-    SUBSIDIARY_UPDATE_HASH_FIELDS,
+    RECENT_TRANSACTION_HISTORY_HASH_FIELDS,
     TRANSACTION_HISTORY_HASH_FIELDS,
-    VALIDATE_MONEY_TRANSFER_HASH_FIELDS,
 )
 from .models import (
     AccountBalanceResponse,
-    BulkMoneyTransferResponse,
     DispenseCashResponse,
-    MoneyTransferResponse,
     OnboardMerchantResponse,
     OperationStatusResponse,
-    PagaResponse,
-    SubsidiaryAccountResponse,
-    SubsidiaryBalanceResponse,
-    SubsidiaryHistoryResponse,
-    SubsidiaryMoneyResponse,
-    SubsidiaryTransferResponse,
+    RecentTransactionsResponse,
     TransactionHistoryResponse,
-    ValidateMoneyTransferResponse,
 )
+
+__all__ = ["BusinessMixin"]
 
 
 class BusinessMixin:
-    """Business account operations and subsidiary account management."""
+    """Business account operations."""
 
     async def get_business_balance(self, *, reference_number: str) -> AccountBalanceResponse:
         """Check the business account balance.
@@ -111,602 +100,50 @@ class BusinessMixin:
         )
         return TransactionHistoryResponse.model_validate(response.model_dump())
 
-    async def create_subsidiary_account(
+    async def get_recent_transactions(
         self,
         *,
         reference_number: str,
-        account_reference: str,
-        account_name: str,
-        first_name: Optional[str] = None,
-        last_name: Optional[str] = None,
-        phone_number: Optional[str] = None,
-        email: Optional[str] = None,
-        iifi_number: Optional[str] = None,
-        funding_transaction_limit: Optional[float] = None,
-        funding_daily_limit: Optional[float] = None,
-        status: Optional[str] = None,
-        auto_sweep_destination: Optional[str] = None,
-        auto_sweep_bank_public_id: Optional[str] = None,
-        auto_sweep_account_number: Optional[str] = None,
-        callback_url: Optional[str] = None,
-    ) -> SubsidiaryAccountResponse:
-        """Create a subsidiary account.
+        locale: Optional[str] = None,
+        account_principal: Optional[str] = None,
+        account_credentials: Optional[str] = None,
+    ) -> RecentTransactionsResponse:
+        """Get the last five transactions on the business account.
 
-        Operation: Subsidiary Accounts - Create an account.
+        Operation: Your business account - Get your recent transactions.
 
-        Creates a subsidiary account. Leave out ``auto_sweep_destination`` for a
-        ledger-backed account that holds funds; set it to ``"VIRTUAL_ACCOUNT"`` or
-        ``"BANK"`` for a virtual account that settles straight away.
-
-        Reusing a ``reference_number`` or ``account_reference`` returns status
-        code ``102`` (duplicate) and never creates a second account.
+        Newest first, no date range. For anything further back, use
+        :meth:`get_business_transactions`.
 
         Args:
             reference_number: Your unique reference for this request.
-            account_reference: Your permanent ID for the account (e.g.
-                ``CUST-000184-WALLET``).
-            account_name: Account holder name.
-            first_name: Optional first name of the account holder.
-            last_name: Optional last name of the account holder.
-            phone_number: Optional phone number of the account holder.
-            email: Optional email address of the account holder.
-            iifi_number: BVN or NIN of the account holder. Hash value 3.
-            funding_transaction_limit: Optional funding transaction limit.
-            funding_daily_limit: Optional funding daily limit.
-            status: Optional account status, e.g. ``"ACTIVE"`` or ``"DISABLED"``.
-            auto_sweep_destination: Optional ``"VIRTUAL_ACCOUNT"`` or ``"BANK"``.
-            auto_sweep_bank_public_id: Bank public ID, only when the destination
-                is ``"BANK"``.
-            auto_sweep_account_number: Bank account number, only when the
-                destination is ``"BANK"``.
-            callback_url: Where Paga sends callbacks. Optional.
+            locale: Optional locale. Paga defaults to ``"en"``.
+            account_principal: Principal to check instead of your own.
+                Only for looking at a Paga user's account.
+            account_credentials: Credentials for that principal.
 
         Returns:
-            The parsed :class:`SubsidiaryAccountResponse`.
-
-        ``status_code`` of ``"102"`` means a duplicate reference was used.
+            The parsed :class:`RecentTransactionsResponse`.
         """
-        payload: Dict[str, Any] = {
-            "referenceNumber": reference_number,
-            "accountReference": account_reference,
-            "accountName": account_name,
-        }
-        if first_name is not None:
-            payload["firstName"] = first_name
-        if last_name is not None:
-            payload["lastName"] = last_name
-        if phone_number is not None:
-            payload["phoneNumber"] = phone_number
-        if email is not None:
-            payload["email"] = email
-        if iifi_number is not None:
-            payload["iifiNumber"] = iifi_number
-        if funding_transaction_limit is not None:
-            payload["fundingTransactionLimit"] = funding_transaction_limit
-        if funding_daily_limit is not None:
-            payload["fundingDailyLimit"] = funding_daily_limit
-        if status is not None:
-            payload["status"] = status
-        if auto_sweep_destination is not None:
-            auto_sweep: Dict[str, Any] = {"destination": auto_sweep_destination}
-            if auto_sweep_destination == "BANK":
-                if auto_sweep_bank_public_id is not None:
-                    auto_sweep["bankPublicId"] = auto_sweep_bank_public_id
-                if auto_sweep_account_number is not None:
-                    auto_sweep["accountNumber"] = auto_sweep_account_number
-            payload["autoSweep"] = auto_sweep
-        if callback_url is not None:
-            payload["callbackUrl"] = callback_url
-
-        response = await self._request(
-            "POST",
-            "/subsidiary-accounts",
-            payload,
-            use_hash=True,
-            use_basic=True,
-            hash_fields=SUBSIDIARY_ACCOUNT_HASH_FIELDS,
-        )
-        return SubsidiaryAccountResponse.model_validate(response.model_dump())
-
-    async def charge_subsidiary_account(
-        self,
-        *,
-        account_reference: str,
-        reference_number: str,
-        amount: float,
-        currency: str = "NGN",
-        narration: Optional[str] = None,
-    ) -> SubsidiaryMoneyResponse:
-        """Charge a ledger-backed subsidiary account.
-
-        Operation: Subsidiary Accounts - Charge an account.
-
-        Debits a ledger-backed account. Not available on virtual accounts. Retrying
-        with the same ``reference_number`` never moves money twice.
-
-        Args:
-            account_reference: The account's ``accountReference`` (the
-                ``accountIdentifier``).
-            reference_number: Your unique charge reference.
-            amount: Amount to debit.
-            currency: Transaction currency. Defaults to ``"NGN"``.
-            narration: Optional narration for the charge.
-
-        Returns:
-            The parsed :class:`SubsidiaryMoneyResponse`.
-        """
-        payload: Dict[str, Any] = {
-            "referenceNumber": reference_number,
-            "amount": amount,
-            "currency": currency,
-        }
-        if narration is not None:
-            payload["narration"] = narration
-        response = await self._request(
-            "POST",
-            f"/subsidiary-accounts/{account_reference}/charge",
-            payload,
-            use_hash=True,
-            use_basic=True,
-            hash_fields=SUBSIDIARY_CHARGE_HASH_FIELDS,
-        )
-        return SubsidiaryMoneyResponse.model_validate(response.model_dump())
-
-    async def top_up_subsidiary_account(
-        self,
-        *,
-        account_reference: str,
-        reference_number: str,
-        amount: float,
-        currency: str = "NGN",
-        narration: Optional[str] = None,
-    ) -> SubsidiaryMoneyResponse:
-        """Top up a ledger-backed subsidiary account.
-
-        Operation: Subsidiary Accounts - Top up an account.
-
-        Credits a ledger-backed account from your business balance. Not available
-        on virtual accounts.
-
-        Args:
-            account_reference: The account's ``accountReference`` (the
-                ``accountIdentifier``).
-            reference_number: Your unique top-up reference.
-            amount: Amount to credit.
-            currency: Transaction currency. Defaults to ``"NGN"``.
-            narration: Optional narration for the top-up.
-
-        Returns:
-            The parsed :class:`SubsidiaryMoneyResponse`.
-        """
-        payload: Dict[str, Any] = {
-            "referenceNumber": reference_number,
-            "amount": amount,
-            "currency": currency,
-        }
-        if narration is not None:
-            payload["narration"] = narration
-        response = await self._request(
-            "POST",
-            f"/subsidiary-accounts/{account_reference}/topup",
-            payload,
-            use_hash=True,
-            use_basic=True,
-            hash_fields=SUBSIDIARY_TOPUP_HASH_FIELDS,
-        )
-        return SubsidiaryMoneyResponse.model_validate(response.model_dump())
-
-    async def transfer_between_subsidiary_accounts(
-        self,
-        *,
-        source_account_reference: str,
-        destination_account_reference: str,
-        reference_number: str,
-        amount: float,
-        currency: str = "NGN",
-        narration: Optional[str] = None,
-    ) -> SubsidiaryTransferResponse:
-        """Transfer money between two subsidiary accounts.
-
-        Operation: Subsidiary Accounts - Transfer between accounts.
-
-        Moves money between two ledger-backed accounts. Paga sends one callback,
-        for the source account only.
-
-        Args:
-            source_account_reference: The source account's ``accountReference``.
-            destination_account_reference: The destination account's
-                ``accountReference``.
-            reference_number: Your unique transfer reference.
-            amount: Amount to move.
-            currency: Transaction currency. Defaults to ``"NGN"``.
-            narration: Optional narration for the transfer.
-
-        Returns:
-            The parsed :class:`SubsidiaryTransferResponse`.
-        """
-        payload: Dict[str, Any] = {
-            "referenceNumber": reference_number,
-            "sourceAccountIdentifier": source_account_reference,
-            "destinationAccountIdentifier": destination_account_reference,
-            "amount": amount,
-            "currency": currency,
-        }
-        if narration is not None:
-            payload["narration"] = narration
-        response = await self._request(
-            "POST",
-            "/subsidiary-accounts/transfer",
-            payload,
-            use_hash=True,
-            use_basic=True,
-            hash_fields=SUBSIDIARY_TRANSFER_HASH_FIELDS,
-        )
-        return SubsidiaryTransferResponse.model_validate(response.model_dump())
-
-    async def retrieve_subsidiary_account(
-        self,
-        *,
-        account_reference: str,
-        reference_number: str,
-    ) -> SubsidiaryAccountResponse:
-        """Retrieve a subsidiary account.
-
-        Operation: Subsidiary Accounts - Retrieve an account.
-
-        Returns an account's details, limits, callback URL and balance.
-
-        Args:
-            account_reference: The account's ``accountReference`` (the
-                ``accountIdentifier``).
-            reference_number: Your unique retrieve reference.
-
-        Returns:
-            The parsed :class:`SubsidiaryAccountResponse`.
-        """
-        response = await self._request(
-            "GET",
-            f"/subsidiary-accounts/{account_reference}",
-            {"referenceNumber": reference_number, "accountIdentifier": account_reference},
-            use_hash=True,
-            use_basic=True,
-            base_url=self.base_url,
-            hash_fields=SUBSIDIARY_RETRIEVE_HASH_FIELDS,
-            params={"referenceNumber": reference_number},
-        )
-        return SubsidiaryAccountResponse.model_validate(response.model_dump())
-
-    async def update_subsidiary_account(
-        self,
-        *,
-        account_reference: str,
-        reference_number: str,
-        account_name: Optional[str] = None,
-        iifi_number: Optional[str] = None,
-        status: Optional[str] = None,
-        auto_sweep_destination: Optional[str] = None,
-        auto_sweep_bank_public_id: Optional[str] = None,
-        auto_sweep_account_number: Optional[str] = None,
-        callback_url: Optional[str] = None,
-    ) -> SubsidiaryAccountResponse:
-        """Update a subsidiary account.
-
-        Operation: Subsidiary Accounts - Update an account.
-
-        Changes an account. Send only what you want to change. ``accountNumber``
-        and ``accountReference`` can't be changed.
-
-        Args:
-            account_reference: The account's ``accountReference`` (the
-                ``accountIdentifier``).
-            reference_number: Your unique update reference.
-            account_name: Optional new account holder name.
-            iifi_number: Optional new BVN / NIN.
-            status: Optional new account status, e.g. ``"ACTIVE"`` or ``"DISABLED"``.
-            auto_sweep_destination: Optional ``"VIRTUAL_ACCOUNT"`` or ``"BANK"``.
-            auto_sweep_bank_public_id: Bank public ID, only when the destination
-                is ``"BANK"``.
-            auto_sweep_account_number: Bank account number, only when the
-                destination is ``"BANK"``.
-            callback_url: Optional new callback URL.
-
-        Returns:
-            The parsed :class:`SubsidiaryAccountResponse`.
-        """
-        payload: Dict[str, Any] = {
-            "referenceNumber": reference_number,
-            "accountIdentifier": account_reference,
-        }
-        if account_name is not None:
-            payload["accountName"] = account_name
-        if iifi_number is not None:
-            payload["iifiNumber"] = iifi_number
-        if status is not None:
-            payload["status"] = status
-        if auto_sweep_destination is not None:
-            auto_sweep: Dict[str, Any] = {"destination": auto_sweep_destination}
-            if auto_sweep_destination == "BANK":
-                if auto_sweep_bank_public_id is not None:
-                    auto_sweep["bankPublicId"] = auto_sweep_bank_public_id
-                if auto_sweep_account_number is not None:
-                    auto_sweep["accountNumber"] = auto_sweep_account_number
-            payload["autoSweep"] = auto_sweep
-        if callback_url is not None:
-            payload["callbackUrl"] = callback_url
-        response = await self._request(
-            "PUT",
-            f"/subsidiary-accounts/{account_reference}",
-            payload,
-            use_hash=True,
-            use_basic=True,
-            hash_fields=SUBSIDIARY_UPDATE_HASH_FIELDS,
-        )
-        return SubsidiaryAccountResponse.model_validate(response.model_dump())
-
-    async def get_subsidiary_balance(
-        self,
-        *,
-        account_reference: str,
-        reference_number: str,
-    ) -> SubsidiaryBalanceResponse:
-        """Get a subsidiary account balance.
-
-        Operation: Subsidiary Accounts - Get the balance.
-
-        Returns an account's balance.
-
-        Args:
-            account_reference: The account's ``accountReference`` (the
-                ``accountIdentifier``).
-            reference_number: Your unique balance check reference.
-
-        Returns:
-            The parsed :class:`SubsidiaryBalanceResponse`.
-        """
-        response = await self._request(
-            "GET",
-            f"/subsidiary-accounts/{account_reference}/balance",
-            {"referenceNumber": reference_number, "accountIdentifier": account_reference},
-            use_hash=True,
-            use_basic=True,
-            base_url=self.base_url,
-            hash_fields=SUBSIDIARY_BALANCE_HASH_FIELDS,
-            params={"referenceNumber": reference_number},
-        )
-        return SubsidiaryBalanceResponse.model_validate(response.model_dump())
-
-    async def get_subsidiary_history(
-        self,
-        *,
-        account_reference: str,
-        reference_number: str,
-        start_date_time_utc: str,
-        end_date_time_utc: str,
-        page_number: int = 0,
-        page_size: int = 20,
-    ) -> SubsidiaryHistoryResponse:
-        """Get a subsidiary account transaction history.
-
-        Operation: Subsidiary Accounts - Get transaction history.
-
-        Returns an account's transactions, up to 3 months at a time. Pages start
-        at ``0``. ``reference_number`` is required, but isn't part of this hash.
-
-        Args:
-            account_reference: The account's ``accountReference`` (the
-                ``accountIdentifier``).
-            reference_number: Your unique history reference (query only).
-            start_date_time_utc: Start of the range, in UTC.
-            end_date_time_utc: End of the range, in UTC.
-            page_number: Page number to fetch. Defaults to ``0``.
-            page_size: Page size. Defaults to ``20``.
-
-        Returns:
-            The parsed :class:`SubsidiaryHistoryResponse`.
-        """
-        response = await self._request(
-            "GET",
-            f"/subsidiary-accounts/{account_reference}/history",
-            {
-                "accountIdentifier": account_reference,
-                "startDateTimeUTC": start_date_time_utc,
-                "endDateTimeUTC": end_date_time_utc,
-            },
-            use_hash=True,
-            use_basic=False,
-            base_url=self.business_base_url,
-            hash_fields=SUBSIDIARY_HISTORY_HASH_FIELDS,
-            params={
-                "referenceNumber": reference_number,
-                "startDateTimeUTC": start_date_time_utc,
-                "endDateTimeUTC": end_date_time_utc,
-                "pageSize": page_size,
-                "pageNumber": page_number,
-            },
-        )
-        return SubsidiaryHistoryResponse.model_validate(response.model_dump())
-
-    # ----------------------------------------------------------------- #
-    # Transfers to Paga wallets
-    # ----------------------------------------------------------------- #
-
-    async def transfer_to_paga_wallet(
-        self,
-        *,
-        reference_number: str,
-        amount: float,
-        destination_account: str,
-        currency: str = "NGN",
-        destination_bank: Optional[str] = None,
-        send_withdrawal_code: bool = True,
-        source_of_funds: Optional[str] = None,
-        transfer_reference: Optional[str] = None,
-        suppress_recipient_message: bool = False,
-        alternate_sender_name: Optional[str] = None,
-        locale: Optional[str] = None,
-    ) -> MoneyTransferResponse:
-        """Send money to a Paga wallet.
-
-        Operation: Business API - Money transfer to a Paga wallet.
-
-        Sends money from the business balance to a Paga user, identified by
-        their phone number, nickname or account number. This is the
-        Paga-wallet sibling of :meth:`send_money`, which sends to a bank
-        account.
-
-        Args:
-            reference_number: Your unique transfer reference. At most 50
-                characters.
-            amount: The amount to send.
-            destination_account: The recipient's phone number, nickname or
-                account number.
-            currency: Transaction currency. Defaults to ``"NGN"``.
-            destination_bank: Bank code, when transferring to a bank account.
-            send_withdrawal_code: Whether to issue the recipient a withdrawal
-                code. Defaults to ``True``.
-            source_of_funds: Defaults to the sender's own Paga account.
-            transfer_reference: An alternative reconciliation reference.
-            suppress_recipient_message: Whether to suppress the recipient's
-                message. Defaults to ``False``.
-            alternate_sender_name: An alternate sender name, at most 16
-                characters. Only when the sender principal is absent.
-            locale: Optional IETF language tag.
-
-        Returns:
-            The parsed :class:`MoneyTransferResponse`.
-        """
-        payload: Dict[str, Any] = {
-            "referenceNumber": reference_number,
-            "amount": amount,
-            "currency": currency,
-            "destinationAccount": destination_account,
-            "sendWithdrawalCode": send_withdrawal_code,
-            "suppressRecipientMessage": suppress_recipient_message,
-        }
-        if destination_bank is not None:
-            payload["destinationBank"] = destination_bank
-        if source_of_funds is not None:
-            payload["sourceOfFunds"] = source_of_funds
-        if transfer_reference is not None:
-            payload["transferReference"] = transfer_reference
-        if alternate_sender_name is not None:
-            payload["alternateSenderName"] = alternate_sender_name
+        payload: Dict[str, Any] = {"referenceNumber": reference_number}
         if locale is not None:
             payload["locale"] = locale
+        if account_principal is not None:
+            payload["accountPrincipal"] = account_principal
+        if account_credentials is not None:
+            payload["accountCredentials"] = account_credentials
 
         response = await self._request(
             "POST",
-            "/moneyTransfer",
+            "/recentTransactionHistory",
             payload,
             use_hash=True,
             use_basic=False,
             base_url=self.business_base_url,
-            hash_fields=PAGA_WALLET_TRANSFER_HASH_FIELDS,
+            hash_fields=RECENT_TRANSACTION_HISTORY_HASH_FIELDS,
             raise_on_error=False,
         )
-        return MoneyTransferResponse.model_validate(response.model_dump())
-
-    async def validate_money_transfer(
-        self,
-        *,
-        reference_number: str,
-        amount: float,
-        destination_account: str,
-        currency: str = "NGN",
-    ) -> ValidateMoneyTransferResponse:
-        """Validate a Paga wallet transfer before sending it.
-
-        Operation: Business API - Validate a money transfer.
-
-        Confirms the recipient exists and returns their name, registration
-        status, KYC level and the fee, before any money moves.
-
-        Args:
-            reference_number: Your unique reference for this request.
-            amount: The amount you intend to send.
-            destination_account: The recipient's phone number, nickname or
-                account number.
-            currency: Transaction currency. Defaults to ``"NGN"``.
-
-        Returns:
-            The parsed :class:`ValidateMoneyTransferResponse`.
-        """
-        response = await self._request(
-            "POST",
-            "/validateMoneyTransfer",
-            {
-                "referenceNumber": reference_number,
-                "amount": amount,
-                "currency": currency,
-                "destinationAccount": destination_account,
-            },
-            use_hash=True,
-            use_basic=False,
-            base_url=self.business_base_url,
-            hash_fields=VALIDATE_MONEY_TRANSFER_HASH_FIELDS,
-            raise_on_error=False,
-        )
-        return ValidateMoneyTransferResponse.model_validate(response.model_dump())
-
-    async def send_bulk_money_transfer(
-        self,
-        *,
-        items: List[Dict[str, Any]],
-        bulk_reference_number: Optional[str] = None,
-    ) -> BulkMoneyTransferResponse:
-        """Send up to 300 money transfers in one call.
-
-        Operation: Business API - Bulk money transfer.
-
-        Each item needs a ``referenceNumber``, an ``amount`` and a
-        ``destinationAccount``; ``currency``, ``destinationBank``,
-        ``transferReference`` and ``suppressRecipientMessage`` are optional.
-        Sending more than 300 items is rejected with response code ``-3``.
-
-        Paga hashes the **first item's** reference number, amount and
-        destination account, followed by the total number of items — the SDK
-        does that for you.
-
-        Args:
-            items: The transfers to send.
-            bulk_reference_number: Your reference for the batch as a whole.
-
-        Returns:
-            The parsed :class:`BulkMoneyTransferResponse`. Check every entry
-            in ``results`` — a bulk transfer can partially succeed.
-        """
-        if not items:
-            raise ValueError("items must not be empty")
-        if len(items) > 300:
-            raise ValueError("a bulk money transfer may contain at most 300 items")
-
-        payload: Dict[str, Any] = {"items": [dict(item) for item in items]}
-        if bulk_reference_number is not None:
-            payload["bulkReferenceNumber"] = bulk_reference_number
-
-        first = items[0]
-        hash_payload = {
-            "referenceNumber": first.get("referenceNumber"),
-            "amount": first.get("amount"),
-            "destinationAccount": first.get("destinationAccount"),
-            "itemCount": len(items),
-        }
-        response = await self._request(
-            "POST",
-            "/moneyTransferBulk",
-            payload,
-            use_hash=True,
-            use_basic=False,
-            base_url=self.business_base_url,
-            hash_fields=MONEY_TRANSFER_BULK_HASH_FIELDS,
-            hash_payload=hash_payload,
-            raise_on_error=False,
-        )
-        return BulkMoneyTransferResponse.model_validate(response.model_dump())
-
-    # ----------------------------------------------------------------- #
-    # Operations, merchants and cash
-    # ----------------------------------------------------------------- #
+        return RecentTransactionsResponse.model_validate(response.model_dump())
 
     async def get_operation_status(
         self,

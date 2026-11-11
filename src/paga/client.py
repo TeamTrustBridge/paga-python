@@ -9,21 +9,26 @@ from typing import Any, Dict, Mapping, Optional, Union
 
 import httpx
 
-from .actions import ActionMixin
+from .airtime import AirtimeMixin
 from .auth import (
     DEFAULT_HASH_ALGORITHM,
     PAYMENT_REQUEST_HASH_FIELDS,
     PagaAuth,
     generate_hash,
 )
+from .bill_payment import BillPaymentMixin
 from .business import BusinessMixin
 from .checkout import CheckoutMixin
+from .collection import CollectionMixin
 from .customer import CustomerMixin
 from .direct_debit import DirectDebitMixin
-from .directory import DirectoryMixin
 from .exceptions import PagaAPIError, PagaAuthenticationError, PagaRateLimitError
 from .models import PagaResponse
+from .money_transfer import MoneyTransferMixin
 from .persistent import PersistentPaymentAccountMixin
+from .refunds import RefundsMixin
+from .status import StatusMixin
+from .subsidiary import SubsidiaryMixin
 
 DEFAULT_COLLECT_TEST_BASE_URL = "https://beta-collect.paga.com"
 DEFAULT_COLLECT_LIVE_BASE_URL = "https://collect.paga.com"
@@ -41,19 +46,38 @@ FilePart = Union[bytes, bytearray, "tuple[Optional[str], bytes, Optional[str]]"]
 
 class PagaClient(
     CheckoutMixin,
-    ActionMixin,
-    BusinessMixin,
-    DirectoryMixin,
+    CollectionMixin,
+    RefundsMixin,
     DirectDebitMixin,
+    MoneyTransferMixin,
+    AirtimeMixin,
+    BillPaymentMixin,
+    StatusMixin,
+    BusinessMixin,
+    SubsidiaryMixin,
     PersistentPaymentAccountMixin,
     CustomerMixin,
 ):
     """Async client for the Paga Engine API.
 
-    Combines the checkout, action, business / subsidiary, directory, Direct
-    Debit, persistent payment account and customer registration operation
-    mixins and owns the shared async HTTP plumbing (auth, hashing, errors,
-    base URLs).
+    The client is composed of one mixin per section of Paga's documentation:
+
+    - :class:`~paga.checkout.CheckoutMixin` — Checkout
+    - :class:`~paga.collection.CollectionMixin` — Dynamic virtual account, Bank
+      USSD, Paga wallet and USD bank transfer
+    - :class:`~paga.refunds.RefundsMixin` — Refunds
+    - :class:`~paga.direct_debit.DirectDebitMixin` — Direct Debit (Open Banking)
+    - :class:`~paga.money_transfer.MoneyTransferMixin` — Money Transfer
+    - :class:`~paga.airtime.AirtimeMixin` — Airtime and data
+    - :class:`~paga.bill_payment.BillPaymentMixin` — Bill payment (VAS)
+    - :class:`~paga.status.StatusMixin` — Check the transaction status
+    - :class:`~paga.business.BusinessMixin` — Your business account
+    - :class:`~paga.subsidiary.SubsidiaryMixin` — Subsidiary accounts
+    - :class:`~paga.persistent.PersistentPaymentAccountMixin` — Persistent
+      payment accounts
+    - :class:`~paga.customer.CustomerMixin` — Customer registration and KYC
+
+    It owns the shared async HTTP plumbing (auth, hashing, errors, base URLs).
     """
 
     def __init__(

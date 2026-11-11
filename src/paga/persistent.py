@@ -12,7 +12,6 @@ from typing import Any, Dict, Optional
 from .auth import (
     DELETE_PERSISTENT_ACCOUNT_HASH_FIELDS,
     GET_PERSISTENT_ACCOUNT_HASH_FIELDS,
-    HISTORY_HASH_FIELDS,
     REGISTER_PERSISTENT_ACCOUNT_HASH_FIELDS,
     UPDATE_PERSISTENT_ACCOUNT_HASH_FIELDS,
 )
@@ -184,29 +183,3 @@ class PersistentPaymentAccountMixin:
             hash_fields=GET_PERSISTENT_ACCOUNT_HASH_FIELDS,
         )
         return PersistentPaymentAccountResponse.model_validate(response.model_dump())
-
-    async def get_payment_request_history(
-        self,
-        *,
-        reference_number: str,
-    ) -> PagaResponse:
-        """Get the history of your payment requests.
-
-        Operation: Collect API - Payment request history.
-
-        Args:
-            reference_number: Your unique reference for this request.
-
-        Returns:
-            The parsed :class:`PagaResponse`.
-        """
-        response = await self._request(
-            "POST",
-            "/history",
-            {"referenceNumber": reference_number},
-            use_hash=True,
-            use_basic=True,
-            hash_fields=HISTORY_HASH_FIELDS,
-            raise_on_error=False,
-        )
-        return response
