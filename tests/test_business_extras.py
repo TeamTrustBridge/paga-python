@@ -31,6 +31,9 @@ async def test_register_persistent_account_signs_six_fields() -> None:
             credit_bank_id="BANK-UUID",
             credit_bank_account_number="0000000000",
             callback_url="https://yourstore.com/webhooks/paga",
+            account_name="Bello Ramon",
+            first_name="Bello",
+            last_name="Ramon",
         )
     finally:
         await http.aclose()

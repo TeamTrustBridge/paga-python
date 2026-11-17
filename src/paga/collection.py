@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Optional
 
 from .auth import (
     COLLECT_BANKS_HASH_FIELDS,
+    PAYMENT_REQUEST_FULL_HASH_FIELDS,
     PAYMENT_REQUEST_HASH_FIELDS,
     PAYMENT_STATUS_HASH_FIELDS,
     USD_PAYMENT_STATUS_HASH_FIELDS,
@@ -115,12 +116,14 @@ class CollectionMixin:
             is_allow_over_payments: Whether over-payments are allowed. Optional.
             narration: Optional narration shown to the payer.
             redirect_url: Where to send the customer after the flow. Optional.
-            hash_fields: Override the hash field order. The default signs
+            hash_fields: Override the hash field order. The default signs the
+                full documented set —
                 ``referenceNumber + amount + currency + payer.phoneNumber +
-                payer.email``. Paga's Collect API operations page also lists
-                a variant that adds the ``payee`` fields — pass
-                :data:`paga.auth.PAYMENT_REQUEST_FULL_HASH_FIELDS` for that
-                one.
+                payer.email + payee.accountNumber + payee.phoneNumber +
+                payee.bankId + payee.bankAccountNumber + hashKey``. Pass
+                :data:`paga.auth.PAYMENT_REQUEST_HASH_FIELDS` for the shorter
+                variant. Paga's Collect API operations page lists the full
+                set as the payment request hash.
 
         Returns:
             The parsed :class:`CollectPaymentRequestResponse`.
@@ -183,7 +186,7 @@ class CollectionMixin:
             payload,
             use_hash=True,
             use_basic=True,
-            hash_fields=hash_fields or PAYMENT_REQUEST_HASH_FIELDS,
+            hash_fields=hash_fields or PAYMENT_REQUEST_FULL_HASH_FIELDS,
         )
         return CollectPaymentRequestResponse.model_validate(response.model_dump())
 

@@ -23,7 +23,7 @@ from .auth import (
     CHARGE_MANDATE_STATUS_HASH_FIELDS,
     DISABLE_MANDATE_HASH_FIELDS,
     MANDATE_STATUS_HASH_FIELDS,
-    PAYMENT_REQUEST_HASH_FIELDS,
+    PAYMENT_REQUEST_FULL_HASH_FIELDS,
 )
 from .models import (
     ChargeMandateResponse,
@@ -227,7 +227,7 @@ class DirectDebitMixin:
             payload,
             use_hash=True,
             use_basic=True,
-            hash_fields=PAYMENT_REQUEST_HASH_FIELDS,
+            hash_fields=PAYMENT_REQUEST_FULL_HASH_FIELDS,
         )
         return response
 

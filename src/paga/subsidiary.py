@@ -297,7 +297,10 @@ class SubsidiaryMixin:
             use_basic=True,
             base_url=self.base_url,
             hash_fields=SUBSIDIARY_RETRIEVE_HASH_FIELDS,
-            params={"referenceNumber": reference_number},
+            params={
+                "referenceNumber": reference_number,
+                "accountIdentifier": account_reference,
+            },
         )
         return SubsidiaryAccountResponse.model_validate(response.model_dump())
 
@@ -396,7 +399,10 @@ class SubsidiaryMixin:
             use_basic=True,
             base_url=self.base_url,
             hash_fields=SUBSIDIARY_BALANCE_HASH_FIELDS,
-            params={"referenceNumber": reference_number},
+            params={
+                "referenceNumber": reference_number,
+                "accountIdentifier": account_reference,
+            },
         )
         return SubsidiaryBalanceResponse.model_validate(response.model_dump())
 
@@ -443,6 +449,7 @@ class SubsidiaryMixin:
             hash_fields=SUBSIDIARY_HISTORY_HASH_FIELDS,
             params={
                 "referenceNumber": reference_number,
+                "accountIdentifier": account_reference,
                 "startDateTimeUTC": start_date_time_utc,
                 "endDateTimeUTC": end_date_time_utc,
                 "pageSize": page_size,

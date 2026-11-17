@@ -111,7 +111,17 @@ async def test_create_mandate_uses_direct_debit_payment_method() -> None:
     expected = generate_hash(
         body,
         HASH_KEY,
-        fields=("referenceNumber", "amount", "currency", "payer.phoneNumber", "payer.email"),
+        fields=(
+            "referenceNumber",
+            "amount",
+            "currency",
+            "payer.phoneNumber",
+            "payer.email",
+            "payee.accountNumber",
+            "payee.phoneNumber",
+            "payee.bankId",
+            "payee.bankAccountNumber",
+        ),
     )
     assert recorder.last.headers["hash"] == expected
 

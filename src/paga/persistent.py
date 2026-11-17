@@ -32,6 +32,12 @@ class PersistentPaymentAccountMixin:
         credit_bank_id: str,
         credit_bank_account_number: str,
         callback_url: str,
+        account_name: str,
+        first_name: str,
+        last_name: str,
+        phone_number: Optional[str] = None,
+        email: Optional[str] = None,
+        funding_transaction_limit: Optional[float] = None,
     ) -> PersistentPaymentAccountResponse:
         """Register a persistent payment account.
 
@@ -48,6 +54,16 @@ class PersistentPaymentAccountMixin:
             credit_bank_id: The credit bank's UUID. From :meth:`get_collect_banks`.
             credit_bank_account_number: The credit account number.
             callback_url: Where Paga sends the funding callback.
+            account_name: The customer's full name, as registered with the
+                credit bank (for example ``"Bellview Walker"``).
+            first_name: The customer's first name.
+            last_name: The customer's last name.
+            phone_number: The customer's phone number. Paga requires it when
+                no email is supplied.
+            email: The customer's email address. Paga requires it when no
+                phone number is supplied.
+            funding_transaction_limit: Optional maximum amount that may be
+                transferred to the persistent account.
 
         Returns:
             The parsed :class:`PersistentPaymentAccountResponse`.
@@ -59,7 +75,16 @@ class PersistentPaymentAccountMixin:
             "creditBankId": credit_bank_id,
             "creditBankAccountNumber": credit_bank_account_number,
             "callbackUrl": callback_url,
+            "accountName": account_name,
+            "firstName": first_name,
+            "lastName": last_name,
         }
+        if phone_number is not None:
+            payload["phoneNumber"] = phone_number
+        if email is not None:
+            payload["email"] = email
+        if funding_transaction_limit is not None:
+            payload["fundingTransactionLimit"] = funding_transaction_limit
         response = await self._request(
             "POST",
             "/registerPersistentPaymentAccount",
@@ -75,6 +100,7 @@ class PersistentPaymentAccountMixin:
         *,
         reference_number: str,
         account_identifier: str,
+        reason: Optional[str] = None,
     ) -> PagaResponse:
         """Delete a persistent payment account.
 
@@ -84,17 +110,21 @@ class PersistentPaymentAccountMixin:
             reference_number: Your unique reference for this request.
             account_identifier: The account's NUBAN **or** its
                 ``accountReference``.
+            reason: Optional reason for the deletion.
 
         Returns:
             The parsed :class:`PagaResponse`.
         """
+        payload: Dict[str, Any] = {
+            "referenceNumber": reference_number,
+            "accountIdentifier": account_identifier,
+        }
+        if reason is not None:
+            payload["reason"] = reason
         response = await self._request(
             "POST",
             "/deletePersistentPaymentAccount",
-            {
-                "referenceNumber": reference_number,
-                "accountIdentifier": account_identifier,
-            },
+            payload,
             use_hash=True,
             use_basic=True,
             hash_fields=DELETE_PERSISTENT_ACCOUNT_HASH_FIELDS,
@@ -110,6 +140,10 @@ class PersistentPaymentAccountMixin:
         credit_bank_id: Optional[str] = None,
         credit_bank_account_number: Optional[str] = None,
         callback_url: Optional[str] = None,
+        account_name: Optional[str] = None,
+        first_name: Optional[str] = None,
+        last_name: Optional[str] = None,
+        phone_number: Optional[str] = None,
     ) -> PersistentPaymentAccountResponse:
         """Update a persistent payment account.
 
@@ -126,6 +160,10 @@ class PersistentPaymentAccountMixin:
             credit_bank_id: Optional new credit bank UUID.
             credit_bank_account_number: Optional new credit account number.
             callback_url: Optional new callback URL.
+            account_name: Optional new full customer name.
+            first_name: Optional new customer first name.
+            last_name: Optional new customer last name.
+            phone_number: Optional new customer phone number.
 
         Returns:
             The parsed :class:`PersistentPaymentAccountResponse`.
@@ -142,6 +180,14 @@ class PersistentPaymentAccountMixin:
             payload["creditBankAccountNumber"] = credit_bank_account_number
         if callback_url is not None:
             payload["callbackUrl"] = callback_url
+        if account_name is not None:
+            payload["accountName"] = account_name
+        if first_name is not None:
+            payload["firstName"] = first_name
+        if last_name is not None:
+            payload["lastName"] = last_name
+        if phone_number is not None:
+            payload["phoneNumber"] = phone_number
 
         response = await self._request(
             "POST",
